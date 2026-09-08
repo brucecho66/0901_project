@@ -279,15 +279,15 @@ function createStore(initialState) {
       });
       if (!response.ok) return false;
 
-      const data = await response.json();
+      const text = await response.text();
+      if (text.startsWith('<') || text.includes('ServiceLogin')) return false;
+
+      const data = JSON.parse(text);
       if (data.success && Array.isArray(data.posts) && data.posts.length > 0) {
-        // 원격 구글 시트 게시글과 로컬 게시글 병합 (원격 우선)
         const localPosts = getPosts();
         const mergedMap = new Map();
         
-        // 원격 글 먼저 등록
         data.posts.forEach(p => mergedMap.set(p.id, p));
-        // 로컬 글 중 원격에 아직 안 올라간 글 유지
         localPosts.forEach(p => {
           if (!mergedMap.has(p.id)) mergedMap.set(p.id, p);
         });
@@ -301,6 +301,94 @@ function createStore(initialState) {
       console.warn('[DevBlog] 구글 시트 동기화 실패 (오프라인/CORS 설정 확인):', err);
     }
     return false;
+  }
+
+  // 실시간 연결 진단 함수
+  async function testConnection(targetUrl) {
+    const url = (targetUrl || getGasUrl() || '').trim();
+    if (!url) {
+      return { success: false, code: 'EMPTY', message: 'Google Apps Script URL이 입력되지 않았습니다.' };
+    }
+
+    if (url.includes('/dev')) {
+      return {
+        success: false,
+        code: 'DEV_URL',
+        message: '입력하신 URL은 테스트 배포(/dev) 주소입니다. 외부 브라우저 접근이 차단되므로, Apps Script에서 [배포] ➔ [새 배포] ➔ 액세스 권한: "모든 사용자(Anyone)"로 배포한 /exec 주소를 입력해 주세요.'
+      };
+    }
+
+    if (!url.startsWith('https://script.google.com/macros/s/')) {
+      return {
+        success: false,
+        code: 'INVALID_URL',
+        message: '올바른 Google Apps Script 웹 앱 URL 형식이 아닙니다. (https://script.google.com/macros/s/.../exec)'
+      };
+    }
+
+    try {
+      const fetchUrl = url + (url.includes('?') ? '&' : '?') + 'action=ping&_t=' + Date.now();
+      const response = await fetch(fetchUrl, {
+        method: 'GET',
+        mode: 'cors'
+      });
+
+      const text = await response.text();
+      
+      if (text.includes('ServiceLogin')) {
+        return { 
+          success: false, 
+          code: 'AUTH_REQUIRED',
+          message: '구글 로그인 화면으로 리다이렉트되었습니다. [새 배포] 시 액세스 권한을 "모든 사용자(Anyone)"로 지정해야 비로그인 사용자 및 블로그에서 호출할 수 있습니다.' 
+        };
+      }
+      if (text.includes('doGet')) {
+        return { 
+          success: false, 
+          code: 'DOGET_NOT_FOUND',
+          message: 'Apps Script에서 doGet 함수를 찾을 수 없습니다. backend/Code.gs 코드를 Apps Script에 붙여넣고 저장(Ctrl+S) 후 [새 배포]를 진행해 주세요.' 
+        };
+      }
+      if (text.startsWith('<')) {
+        return { 
+          success: false, 
+          code: 'HTML_ERROR',
+          message: 'Apps Script가 JSON 대신 오류 페이지를 반환했습니다. Apps Script 편집기에서 testApi 함수를 먼저 실행(▷)하여 권한을 승인해 주세요.' 
+        };
+      }
+
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        return {
+          success: false,
+          code: 'PARSE_ERROR',
+          message: '응답 데이터 파싱 실패: 올바른 JSON 형식이 아닙니다.'
+        };
+      }
+
+      if (data.success) {
+        return { 
+          success: true, 
+          code: 'SUCCESS',
+          message: `구글 스프레드시트 실시간 연결 성공! (${data.spreadsheet ? '시트명: ' + data.spreadsheet : 'DevBlog API 정상 응답'})`,
+          data: data 
+        };
+      } else {
+        return { 
+          success: false, 
+          code: 'API_ERROR',
+          message: data.error || data.message || '알 수 없는 응답 오류' 
+        };
+      }
+    } catch (err) {
+      return { 
+        success: false, 
+        code: 'NETWORK_ERROR',
+        message: '통신 오류: ' + (err.message || '네트워크 요청 실패') 
+      };
+    }
   }
 
   // 원격 구글 시트로 POST 비동기 전송 헬퍼

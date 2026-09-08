@@ -182,7 +182,7 @@
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="8" y1="13" x2="16" y2="13"></line><line x1="8" y1="17" x2="16" y2="17"></line></svg>
             <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--text-primary);">Google 스프레드시트 연동 설정</h3>
           </div>
-          <button id="closeGasModalBtn" class="modal-close-btn">&times;</button>
+          <button id="closeGasModalBtn" class="modal-close-btn" aria-label="닫기">&times;</button>
         </div>
         <div class="modal-body">
           <div class="gas-target-box">
@@ -194,24 +194,40 @@
           </div>
 
           <div class="editor-form-group">
-            <label class="editor-label">Apps Script 웹 앱 URL (Web App URL)</label>
-            <input type="url" id="gasUrlInput" class="editor-input" placeholder="https://script.google.com/macros/s/AKfycb.../exec" value="${currentGasUrl}">
+            <label class="editor-label" for="gasUrlInput">Apps Script 웹 앱 URL (끝자리가 <strong>/exec</strong> 여야 합니다)</label>
+            <div style="display: flex; gap: 0.5rem;">
+              <input type="url" id="gasUrlInput" class="editor-input" style="flex: 1;" placeholder="https://script.google.com/macros/s/AKfycb.../exec" value="${currentGasUrl}">
+              <button type="button" id="testGasUrlBtn" class="btn btn-sm btn-secondary" style="white-space: nowrap; font-weight: 700;">실시간 진단 테스트</button>
+            </div>
             <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.35rem;">
-              스프레드시트 ➔ 확장 프로그램 ➔ Apps Script에서 웹 앱으로 배포한 URL을 입력하세요.
+              ※ <code>/dev</code> 로 끝나는 테스트 배포 URL은 Google 로그인 차단으로 인해 연동되지 않으므로 반드시 <strong>/exec</strong> 웹 앱 URL을 사용하세요.
             </div>
           </div>
 
+          <div id="gasTestResultBox" style="display: none; margin-top: 1rem;"></div>
+
           <div class="gas-guide-card">
-            <h4 style="font-size: 0.875rem; font-weight: 700; margin-bottom: 0.5rem; color: var(--text-primary);">🚀 연결 3단계 가이드</h4>
-            <ol style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.6; padding-left: 1.2rem;">
-              <li>위 스프레드시트 링크 열기 ➔ <strong>[확장 프로그램] ➔ [Apps Script]</strong> 클릭</li>
-              <li>[backend/Code.gs] 코드를 복사하여 붙여넣고 저장(Ctrl+S)</li>
-              <li>우측 상단 <strong>[배포] ➔ [새 배포]</strong> (유형: 웹 앱, 액세스: <strong>모든 사용자</strong>) 후 생성된 URL을 위 입력창에 붙여넣기</li>
+            <h4 style="font-size: 0.875rem; font-weight: 700; margin-bottom: 0.6rem; color: var(--text-primary); display: flex; align-items: center; gap: 0.4rem;">
+              <span>🚀 3분 완성 스프레드시트 배포 가이드</span>
+            </h4>
+            <ol style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.65; padding-left: 1.2rem; margin: 0;">
+              <li>스프레드시트 열기 ➔ 상단 메뉴 <strong>[확장 프로그램] ➔ [Apps Script]</strong> 클릭</li>
+              <li>하단 <strong>[Apps Script 최신 코드 복사]</strong> 클릭 후 붙여넣고 <strong>Ctrl + S</strong> 저장</li>
+              <li>상단 도구바에서 <strong>testApi</strong> 선택 ➔ <strong>▷ 실행</strong> 클릭하여 권한 최초 승인</li>
+              <li>우측 상단 <strong>[배포] ➔ [새 배포]</strong> 클릭:
+                <br>• 유형: <strong>웹 앱</strong>
+                <br>• 실행할 사용자: <strong>나</strong>
+                <br>• 액세스 권한: <strong style="color: #10b981;">모든 사용자(Anyone)</strong> (필수!)
+              </li>
+              <li>발급된 <strong>웹 앱 URL(/exec)</strong>을 위 입력창에 넣고 [연결 저장] 클릭</li>
             </ol>
           </div>
         </div>
         <div class="modal-footer">
-          <button type="button" id="copyGasCodeBtn" class="btn btn-sm btn-secondary">Apps Script 코드 복사</button>
+          <button type="button" id="copyGasCodeBtn" class="btn btn-sm btn-secondary">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px; vertical-align: middle;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+            Apps Script 최신 코드 복사
+          </button>
           <button type="button" id="saveGasUrlBtn" class="btn btn-sm btn-primary">연결 저장 & 즉시 동기화</button>
         </div>
       </div>
@@ -219,7 +235,68 @@
 
     modal.classList.add('is-open');
 
-    // 모달 이벤트 바인딩
+    const resultBox = document.getElementById('gasTestResultBox');
+    const urlInput = document.getElementById('gasUrlInput');
+
+    function showTestResult(status, message, details) {
+      resultBox.style.display = 'block';
+      let bgColor = '#f8fafc';
+      let borderColor = '#cbd5e1';
+      let textColor = '#334155';
+      let icon = 'ℹ️';
+
+      if (status === 'success') {
+        bgColor = 'rgba(16, 185, 129, 0.1)';
+        borderColor = '#10b981';
+        textColor = '#065f46';
+        icon = '✅';
+      } else if (status === 'error') {
+        bgColor = 'rgba(239, 68, 68, 0.1)';
+        borderColor = '#ef4444';
+        textColor = '#991b1b';
+        icon = '⚠️';
+      } else if (status === 'loading') {
+        bgColor = 'rgba(59, 130, 246, 0.08)';
+        borderColor = '#3b82f6';
+        textColor = '#1e40af';
+        icon = '⏳';
+      }
+
+      resultBox.innerHTML = `
+        <div style="background-color: ${bgColor}; border: 1px solid ${borderColor}; border-radius: 8px; padding: 0.85rem 1rem; font-size: 0.825rem; color: ${textColor}; line-height: 1.5;">
+          <div style="font-weight: 700; margin-bottom: 0.25rem;">${icon} ${message}</div>
+          ${details ? `<div style="font-size: 0.775rem; margin-top: 0.4rem; color: var(--text-secondary);">${details}</div>` : ''}
+        </div>
+      `;
+    }
+
+    // 진단 테스트 버튼 이벤트
+    document.getElementById('testGasUrlBtn').addEventListener('click', async () => {
+      const url = urlInput.value.trim();
+      if (!url) {
+        showTestResult('error', 'URL이 입력되지 않았습니다.', '스프레드시트에서 발급받은 웹 앱 URL을 먼저 입력해 주세요.');
+        return;
+      }
+
+      showTestResult('loading', '스프레드시트와 실시간 통신 상태를 진단 중입니다...', 'Google 서버 응답을 확인하고 있습니다.');
+      
+      const res = await window.BlogStore.testConnection(url);
+      if (res.success) {
+        showTestResult('success', res.message, '스프레드시트 DB와 양방향 통신이 원활합니다. [연결 저장 & 즉시 동기화]를 눌러 적용하세요!');
+      } else {
+        let hint = '';
+        if (res.code === 'DEV_URL') {
+          hint = '👉 <strong>해결 방법</strong>: [배포] ➔ [새 배포] ➔ 액세스 권한을 <strong>"모든 사용자(Anyone)"</strong>로 설정하고 생성된 <code>/exec</code> URL을 입력해 주세요.';
+        } else if (res.code === 'DOGET_NOT_FOUND') {
+          hint = '👉 <strong>해결 방법</strong>: Apps Script 편집기에서 코드를 붙여넣고 <strong>Ctrl + S</strong> 저장한 후, [배포] ➔ [새 배포]를 진행해 주세요.';
+        } else if (res.code === 'AUTH_REQUIRED') {
+          hint = '👉 <strong>해결 방법</strong>: [새 배포] 시 액세스 권한 항목이 <strong>"모든 사용자"</strong>로 선택되었는지 확인해 주세요.';
+        }
+        showTestResult('error', res.message, hint);
+      }
+    });
+
+    // 닫기 버튼
     document.getElementById('closeGasModalBtn').addEventListener('click', () => {
       modal.classList.remove('is-open');
     });
@@ -228,13 +305,19 @@
       if (e.target === modal) modal.classList.remove('is-open');
     });
 
+    // 저장 & 동기화 버튼
     document.getElementById('saveGasUrlBtn').addEventListener('click', async () => {
-      const url = document.getElementById('gasUrlInput').value.trim();
+      const url = urlInput.value.trim();
       if (!url) {
         window.BlogStore.setGasUrl('');
-        toast('구글 시트 연동이 해제되었습니다. (로컬 모드 전환)', 'info');
+        toast('구글 시트 연동이 해제되었습니다. (로컬 모드 유지)', 'info');
         modal.classList.remove('is-open');
         renderHeader();
+        return;
+      }
+
+      if (url.includes('/dev')) {
+        toast('테스트 배포(/dev) URL은 연동할 수 없습니다. /exec URL을 입력하세요.', 'error');
         return;
       }
 
@@ -244,34 +327,54 @@
       }
 
       window.BlogStore.setGasUrl(url);
-      toast('연결 저장 완료! 구글 시트와 데이터 동기화를 시도합니다...', 'info');
+      toast('연결 저장 완료! 데이터 동기화 시도 중...', 'info');
       
       const success = await window.BlogStore.syncFromGoogleSheets();
       if (success) {
         toast('구글 스프레드시트와 실시간 연동 성공!', 'success');
         setTimeout(() => { window.location.reload(); }, 800);
       } else {
-        toast('URL이 저장되었습니다. (스프레드시트에 새 글 작성 시 자동 기록됩니다)', 'success');
+        toast('URL이 저장되었습니다. 로컬 저장소와 병행 동작합니다.', 'success');
       }
       modal.classList.remove('is-open');
       renderHeader();
     });
 
+    // 코드 복사 버튼
     document.getElementById('copyGasCodeBtn').addEventListener('click', () => {
-      const sampleCode = `// 스프레드시트 확장 프로그램 > Apps Script에 아래 코드를 넣으세요.
-// 깃허브 저장소의 backend/Code.gs 파일에서 전체 소스코드를 확인하실 수 있습니다.`;
-      if (navigator.clipboard) {
-        fetch('backend/Code.gs')
-          .then(res => res.text())
-          .then(code => {
-            navigator.clipboard.writeText(code);
-            toast('Apps Script 전체 코드가 클립보드에 복사되었습니다!', 'success');
-          })
-          .catch(() => {
-            toast('깃허브 저장소 backend/Code.gs 파일을 열어 코드를 복사해주세요.', 'info');
-          });
-      }
+      fetch('backend/Code.gs')
+        .then(res => res.text())
+        .then(code => {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(code).then(() => {
+              toast('Apps Script 최신 코드가 복사되었습니다! Apps Script 편집기에 붙여넣으세요.', 'success');
+            }).catch(() => {
+              fallbackCopy(code);
+            });
+          } else {
+            fallbackCopy(code);
+          }
+        })
+        .catch(() => {
+          toast('backend/Code.gs 파일에서 코드를 확인하실 수 있습니다.', 'info');
+        });
     });
+
+    function fallbackCopy(text) {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      try {
+        document.execCommand('copy');
+        toast('Apps Script 코드가 복사되었습니다!', 'success');
+      } catch (err) {
+        toast('복사 실패: 저장소의 backend/Code.gs를 열어주세요.', 'error');
+      }
+      document.body.removeChild(textarea);
+    }
   }
 
   // 공통 푸터 렌더링

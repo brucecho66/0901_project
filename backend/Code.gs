@@ -3,22 +3,22 @@
  * Google Apps Script - Dev.Blog Backend API (회원가입, 로그인, 게시글, 댓글)
  * 스프레드시트 ID: 1dzsv8e3o-LaAnL2smrrzB_YrVqloz51AUcQTNE5Xelc
  * ==========================================================================
- * 
- * [지원 기능]
- * 1. 회원가입 (users 시트 자동 생성 및 이메일 중복 검증, 회원 정보 저장)
- * 2. 로그인 (이메일/비밀번호 인증 및 사용자 프로필 반환)
- * 3. 게시글 관리 (posts 시트: 목록 조회, 상세 조회, 새 글 등록, 좋아요, 조회수)
- * 4. 댓글 관리 (comments 시트: 댓글 등록 및 글별 댓글 조회)
  */
 
 const SPREADSHEET_ID = '1dzsv8e3o-LaAnL2smrrzB_YrVqloz51AUcQTNE5Xelc';
 
 function getSpreadsheet() {
+  let ss = null;
   try {
-    return SpreadsheetApp.openById(SPREADSHEET_ID);
-  } catch (e) {
-    return SpreadsheetApp.getActiveSpreadsheet();
+    ss = SpreadsheetApp.getActiveSpreadsheet();
+  } catch (e) {}
+  
+  if (!ss && SPREADSHEET_ID) {
+    try {
+      ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    } catch (e) {}
   }
+  return ss;
 }
 
 // --------------------------------------------------------------------------
@@ -26,6 +26,7 @@ function getSpreadsheet() {
 // --------------------------------------------------------------------------
 function ensureSheets() {
   const ss = getSpreadsheet();
+  if (!ss) throw new Error('스프레드시트를 열 수 없습니다. 스프레드시트 ID를 확인하세요.');
 
   // 1. users (회원 시트)
   let usersSheet = ss.getSheetByName('users');
@@ -34,7 +35,7 @@ function ensureSheets() {
     usersSheet.appendRow([
       'id', 'email', 'password', 'name', 'bio', 'techStack', 'role', 'createdAt'
     ]);
-    // 기본 운영자 계정 1개 자동 생성
+    // 기본 운영자 계정 자동 생성
     usersSheet.appendRow([
       'u_admin',
       'hong@example.com',
@@ -55,6 +56,20 @@ function ensureSheets() {
       'id', 'title', 'category', 'tags', 'excerpt', 
       'content', 'authorName', 'authorAvatar', 'views', 'likes', 'createdAt'
     ]);
+    // 샘플 첫 게시글 1개 자동 생성
+    postsSheet.appendRow([
+      'post-1',
+      '2026년 모던 프론트엔드 성능 최적화 실전 가이드',
+      '프론트엔드',
+      '성능최적화, CoreWebVitals, JavaScript',
+      '브라우저 렌더링 파이프라인 이해부터 LCP, FID, CLS 등 핵심 웹 바이탈 지표를 대폭 개선하는 실전 테크닉들을 정리합니다.',
+      '## 🚀 웹 성능 최적화\n\n현대 웹에서 속도는 곧 사용자 경험입니다.\n\n- CSS 차단 리소스 줄이기\n- JavaScript defer/async 활용\n- 웹 폰트 font-display: swap 설정',
+      '홍길동',
+      'assets/images/profile.svg',
+      128,
+      15,
+      new Date().toISOString()
+    ]);
   }
 
   // 3. comments (댓글 시트)
@@ -70,36 +85,160 @@ function ensureSheets() {
 }
 
 // --------------------------------------------------------------------------
-// 1. GET 요청 핸들러 (조회 전용)
+// 공통 요청 처리 디스패처 (GET & POST 모두 완벽 지원)
+// --------------------------------------------------------------------------
+function processRequest(data) {
+  const { ss, usersSheet, postsSheet, commentsSheet } = ensureSheets();
+  const action = (data && data.action) || 'getPosts';
+
+  // [헬스체크 / 핑]
+  if (action === 'ping') {
+    return {
+      success: true,
+      message: 'DevBlog API가 정상 작동 중입니다.',
+      spreadsheet: ss.getName(),
+      timestamp: new Date().toISOString()
+    };
+  }
+
+  // [게시글] 전체 목록 조회
+  if (action === 'getPosts') {
+    const posts = getAllPosts(postsSheet);
+    return { success: true, posts: posts, count: posts.length };
+  }
+
+  // [게시글] 단일 상세 및 댓글 조회
+  if (action === 'getPost') {
+    const postId = data.id;
+    const post = findPostById(postsSheet, postId);
+    const comments = getCommentsForPost(commentsSheet, postId);
+    return { success: true, post: post, comments: comments };
+  }
+
+  // [회원] 이메일 중복 확인
+  if (action === 'checkEmail') {
+    const email = (data.email || '').trim().toLowerCase();
+    const exists = checkUserEmailExists(usersSheet, email);
+    return { success: true, exists: exists };
+  }
+
+  // [회원] 회원가입 (Signup)
+  if (action === 'signup') {
+    const email = (data.email || '').trim().toLowerCase();
+    const password = String(data.password || '').trim();
+    const name = (data.name || '').trim() || '블로그 회원';
+    const bio = (data.bio || '').trim() || '반갑습니다!';
+    const techStack = Array.isArray(data.techStack) ? data.techStack.join(', ') : (data.techStack || 'Web');
+
+    if (!email || !password) {
+      return { success: false, message: '이메일과 비밀번호를 모두 입력해 주세요.' };
+    }
+
+    if (checkUserEmailExists(usersSheet, email)) {
+      return { success: false, message: '이미 등록된 이메일 계정입니다.' };
+    }
+
+    const newUserId = 'u_' + Date.now();
+    const now = new Date().toISOString();
+
+    usersSheet.appendRow([
+      newUserId,
+      email,
+      password,
+      name,
+      bio,
+      techStack,
+      'member',
+      now
+    ]);
+
+    const userSafe = {
+      id: newUserId,
+      email: email,
+      name: name,
+      bio: bio,
+      techStack: typeof techStack === 'string' ? techStack.split(',').map(function(s) { return s.trim(); }) : [],
+      role: 'member',
+      createdAt: now
+    };
+
+    return { success: true, user: userSafe };
+  }
+
+  // [회원] 로그인 (Login)
+  if (action === 'login') {
+    const email = (data.email || '').trim().toLowerCase();
+    const password = String(data.password || '').trim();
+
+    if (!email || !password) {
+      return { success: false, message: '이메일과 비밀번호를 입력해 주세요.' };
+    }
+
+    const user = authenticateUser(usersSheet, email, password);
+    if (!user) {
+      return { success: false, message: '이메일 또는 비밀번호가 일치하지 않습니다.' };
+    }
+
+    return { success: true, user: user };
+  }
+
+  // [게시글] 새 글 등록
+  if (action === 'createPost') {
+    const newPostId = data.id || ('post-' + Date.now());
+    const row = [
+      newPostId,
+      data.title || '제목 없음',
+      data.category || '개발',
+      Array.isArray(data.tags) ? data.tags.join(', ') : (data.tags || ''),
+      data.excerpt || '',
+      data.content || '',
+      data.authorName || '홍길동',
+      data.authorAvatar || 'assets/images/profile.svg',
+      Number(data.views || 0),
+      Number(data.likes || 0),
+      data.createdAt || new Date().toISOString()
+    ];
+    postsSheet.appendRow(row);
+    return { success: true, id: newPostId };
+  }
+
+  // [댓글] 댓글 등록
+  if (action === 'addComment') {
+    const newCommentId = 'c-' + Date.now();
+    const row = [
+      newCommentId,
+      data.postId,
+      data.authorName || '익명 방문자',
+      data.content || '',
+      new Date().toISOString()
+    ];
+    commentsSheet.appendRow(row);
+    return { success: true, commentId: newCommentId };
+  }
+
+  // [좋아요] 좋아요 증가
+  if (action === 'likePost') {
+    const likes = incrementCell(postsSheet, data.postId, 10);
+    return { success: true, likes: likes };
+  }
+
+  // [조회수] 조회수 증가
+  if (action === 'viewPost') {
+    const views = incrementCell(postsSheet, data.postId, 9);
+    return { success: true, views: views };
+  }
+
+  return { success: false, message: '알 수 없는 요청 액션입니다: ' + action };
+}
+
+// --------------------------------------------------------------------------
+// 1. GET 요청 핸들러 (브라우저 주소창, JSON 조회, GET 파라미터 호출)
 // --------------------------------------------------------------------------
 function doGet(e) {
   try {
-    const { usersSheet, postsSheet, commentsSheet } = ensureSheets();
-    const action = (e && e.parameter && e.parameter.action) || 'getPosts';
-
-    // (1) 특정 게시글 상세 조회
-    if (action === 'getPost') {
-      const postId = e.parameter.id;
-      const post = findPostById(postsSheet, postId);
-      const comments = getCommentsForPost(commentsSheet, postId);
-      return createJsonResponse({ success: true, post, comments });
-    }
-
-    // (2) 전체 게시글 목록 조회
-    if (action === 'getPosts') {
-      const posts = getAllPosts(postsSheet);
-      return createJsonResponse({ success: true, posts });
-    }
-
-    // (3) 이메일 중복 확인
-    if (action === 'checkEmail') {
-      const email = (e.parameter.email || '').trim().toLowerCase();
-      const exists = checkUserEmailExists(usersSheet, email);
-      return createJsonResponse({ success: true, exists });
-    }
-
-    return createJsonResponse({ success: true, message: 'DevBlog API Ready' });
-
+    const data = (e && e.parameter) ? e.parameter : {};
+    const result = processRequest(data);
+    return createJsonResponse(result);
   } catch (err) {
     return createJsonResponse({ success: false, error: err.toString() });
   }
@@ -110,142 +249,41 @@ function doGet(e) {
 // --------------------------------------------------------------------------
 function doPost(e) {
   try {
-    const { usersSheet, postsSheet, commentsSheet } = ensureSheets();
-    const contents = e.postData ? e.postData.contents : '{}';
-    const data = JSON.parse(contents);
-    const action = data.action;
-
-    // ----------------------------------------------------------------------
-    // [인증 1] 회원가입 (Signup)
-    // ----------------------------------------------------------------------
-    if (action === 'signup') {
-      const email = (data.email || '').trim().toLowerCase();
-      const password = String(data.password || '').trim();
-      const name = (data.name || '').trim() || '블로그 회원';
-      const bio = (data.bio || '').trim() || '반갑습니다!';
-      const techStack = Array.isArray(data.techStack) ? data.techStack.join(', ') : (data.techStack || 'Web');
-
-      if (!email || !password) {
-        return createJsonResponse({ success: false, message: '이메일과 비밀번호를 모두 입력해 주세요.' });
+    let data = {};
+    if (e && e.postData && e.postData.contents) {
+      try {
+        data = JSON.parse(e.postData.contents);
+      } catch (parseErr) {
+        data = (e && e.parameter) || {};
       }
-
-      // 중복 체크
-      if (checkUserEmailExists(usersSheet, email)) {
-        return createJsonResponse({ success: false, message: '이미 등록된 이메일 계정입니다.' });
-      }
-
-      const newUserId = 'u_' + Date.now();
-      const now = new Date().toISOString();
-
-      const newRow = [
-        newUserId,
-        email,
-        password,
-        name,
-        bio,
-        techStack,
-        'member',
-        now
-      ];
-
-      usersSheet.appendRow(newRow);
-
-      // 비밀번호는 제외하고 반환
-      const userSafe = {
-        id: newUserId,
-        email: email,
-        name: name,
-        bio: bio,
-        techStack: techStack.split(',').map(s => s.trim()),
-        role: 'member',
-        createdAt: now
-      };
-
-      return createJsonResponse({ success: true, user: userSafe });
+    } else if (e && e.parameter) {
+      data = e.parameter;
     }
 
-    // ----------------------------------------------------------------------
-    // [인증 2] 로그인 (Login)
-    // ----------------------------------------------------------------------
-    if (action === 'login') {
-      const email = (data.email || '').trim().toLowerCase();
-      const password = String(data.password || '').trim();
-
-      if (!email || !password) {
-        return createJsonResponse({ success: false, message: '이메일과 비밀번호를 입력해 주세요.' });
-      }
-
-      const user = authenticateUser(usersSheet, email, password);
-      if (!user) {
-        return createJsonResponse({ success: false, message: '이메일 또는 비밀번호가 일치하지 않습니다.' });
-      }
-
-      return createJsonResponse({ success: true, user });
-    }
-
-    // ----------------------------------------------------------------------
-    // [게시글] 새 글 등록 (Create Post)
-    // ----------------------------------------------------------------------
-    if (action === 'createPost') {
-      const newPostId = data.id || ('post-' + Date.now());
-      const row = [
-        newPostId,
-        data.title || '제목 없음',
-        data.category || '개발',
-        Array.isArray(data.tags) ? data.tags.join(', ') : (data.tags || ''),
-        data.excerpt || '',
-        data.content || '',
-        data.authorName || '작성자',
-        data.authorAvatar || 'assets/images/profile.svg',
-        Number(data.views || 0),
-        Number(data.likes || 0),
-        data.createdAt || new Date().toISOString()
-      ];
-      postsSheet.appendRow(row);
-      return createJsonResponse({ success: true, id: newPostId });
-    }
-
-    // ----------------------------------------------------------------------
-    // [댓글] 댓글 등록 (Add Comment)
-    // ----------------------------------------------------------------------
-    if (action === 'addComment') {
-      const newCommentId = 'c-' + Date.now();
-      const row = [
-        newCommentId,
-        data.postId,
-        data.authorName || '익명 방문자',
-        data.content || '',
-        new Date().toISOString()
-      ];
-      commentsSheet.appendRow(row);
-      return createJsonResponse({ success: true, commentId: newCommentId });
-    }
-
-    // ----------------------------------------------------------------------
-    // [좋아요] 좋아요 1 증가
-    // ----------------------------------------------------------------------
-    if (action === 'likePost') {
-      const likes = incrementCell(postsSheet, data.postId, 10);
-      return createJsonResponse({ success: true, likes });
-    }
-
-    // ----------------------------------------------------------------------
-    // [조회수] 조회수 1 증가
-    // ----------------------------------------------------------------------
-    if (action === 'viewPost') {
-      const views = incrementCell(postsSheet, data.postId, 9);
-      return createJsonResponse({ success: true, views });
-    }
-
-    return createJsonResponse({ success: false, message: '알 수 없는 액션입니다: ' + action });
-
+    const result = processRequest(data);
+    return createJsonResponse(result);
   } catch (err) {
     return createJsonResponse({ success: false, error: err.toString() });
   }
 }
 
 // --------------------------------------------------------------------------
-// 회원 및 보조 유틸리티 함수
+// 직접 테스트용 함수 (Apps Script 상단에서 [testApi] 선택 후 [▷ 실행] 클릭)
+// --------------------------------------------------------------------------
+function testApi() {
+  Logger.log('1. ensureSheets 실행 중...');
+  const sheets = ensureSheets();
+  Logger.log('2. 시트 확인 완료: ' + sheets.ss.getName());
+
+  Logger.log('3. doGet 테스트 실행...');
+  const res = doGet({ parameter: { action: 'getPosts' } });
+  Logger.log('doGet 결과: ' + res.getContent());
+
+  Logger.log('🎉 모든 테스트 통과! 이제 [배포] > [새 배포]를 진행하세요.');
+}
+
+// --------------------------------------------------------------------------
+// 보조 함수들
 // --------------------------------------------------------------------------
 function checkUserEmailExists(usersSheet, email) {
   const data = usersSheet.getDataRange().getValues();

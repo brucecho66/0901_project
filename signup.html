@@ -123,7 +123,9 @@
         }
       });
 
-      form.addEventListener('submit', (e) => {
+      const submitBtn = form.querySelector('button[type="submit"]');
+
+      form.addEventListener('submit', async (e) => {
         e.preventDefault();
 
         const name = document.getElementById('signupName').value.trim();
@@ -138,20 +140,33 @@
           return;
         }
 
-        const res = BlogStore.signup({
-          name,
-          email,
-          password,
-          bio
-        });
+        const originalBtnText = submitBtn.innerHTML;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span>가입 처리 중...</span>';
 
-        if (res.success) {
-          BlogCommon.toast(`환영합니다, ${res.user.name}님! 회원가입이 완료되었습니다.`, 'success');
-          setTimeout(() => {
-            window.location.href = 'profile.html';
-          }, 600);
-        } else {
-          BlogCommon.toast(res.message || '회원가입에 실패했습니다.', 'error');
+        try {
+          const res = await BlogStore.signup({
+            name,
+            email,
+            password,
+            bio
+          });
+
+          if (res.success) {
+            const syncMsg = res.remote ? ' (구글 시트 저장 완료)' : '';
+            BlogCommon.toast(`환영합니다, ${res.user.name}님! 회원가입이 완료되었습니다.${syncMsg}`, 'success');
+            setTimeout(() => {
+              window.location.href = 'profile.html';
+            }, 600);
+          } else {
+            BlogCommon.toast(res.message || '회원가입에 실패했습니다.', 'error');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalBtnText;
+          }
+        } catch (err) {
+          BlogCommon.toast('회원가입 처리 중 오류가 발생했습니다.', 'error');
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = originalBtnText;
         }
       });
     });

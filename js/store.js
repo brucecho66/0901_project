@@ -356,10 +356,43 @@ function createStore(initialState) {
     }
   }
 
-  function signup({ email, password, name, bio, techStack }) {
-    const users = getUsers();
+  async function signup({ email, password, name, bio, techStack }) {
     const cleanEmail = email.trim().toLowerCase();
+    const gasUrl = getGasUrl();
 
+    // 1. 구글 스프레드시트 연동 시 원격 가입 우선 시도
+    if (gasUrl) {
+      try {
+        const response = await fetch(gasUrl, {
+          method: 'POST',
+          mode: 'cors',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({
+            action: 'signup',
+            email: cleanEmail,
+            password: password,
+            name: name,
+            bio: bio,
+            techStack: techStack
+          })
+        });
+        const data = await response.json();
+        if (data.success && data.user) {
+          const users = getUsers();
+          users.push(data.user);
+          saveUsers(users);
+          setCurrentUser(data.user);
+          return { success: true, user: data.user, remote: true };
+        } else {
+          return { success: false, message: data.message || '가입에 실패했습니다.' };
+        }
+      } catch (err) {
+        console.warn('[DevBlog] 구글 시트 가입 통신 실패, 로컬 모드로 진행:', err);
+      }
+    }
+
+    // 2. 로컬 스토리지 가입 (로컬 모드 또는 오프라인 Fallback)
+    const users = getUsers();
     if (users.some(u => u.email.toLowerCase() === cleanEmail)) {
       return { success: false, message: '이미 등록된 이메일 계정입니다.' };
     }
@@ -380,12 +413,48 @@ function createStore(initialState) {
     saveUsers(users);
     setCurrentUser(newUser);
 
-    return { success: true, user: newUser };
+    return { success: true, user: newUser, remote: false };
   }
 
-  function login(email, password) {
-    const users = getUsers();
+  async function login(email, password) {
     const cleanEmail = email.trim().toLowerCase();
+    const gasUrl = getGasUrl();
+
+    // 1. 구글 스프레드시트 연동 시 원격 로그인 우선 시도
+    if (gasUrl) {
+      try {
+        const response = await fetch(gasUrl, {
+          method: 'POST',
+          mode: 'cors',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({
+            action: 'login',
+            email: cleanEmail,
+            password: password
+          })
+        });
+        const data = await response.json();
+        if (data.success && data.user) {
+          const users = getUsers();
+          const existingIdx = users.findIndex(u => u.id === data.user.id || u.email.toLowerCase() === cleanEmail);
+          if (existingIdx !== -1) {
+            users[existingIdx] = { ...users[existingIdx], ...data.user };
+          } else {
+            users.push(data.user);
+          }
+          saveUsers(users);
+          setCurrentUser(data.user);
+          return { success: true, user: data.user, remote: true };
+        } else {
+          return { success: false, message: data.message || '이메일 또는 비밀번호가 일치하지 않습니다.' };
+        }
+      } catch (err) {
+        console.warn('[DevBlog] 구글 시트 로그인 통신 실패, 로컬 모드로 진행:', err);
+      }
+    }
+
+    // 2. 로컬 스토리지 로그인 (로컬 모드 또는 오프라인 Fallback)
+    const users = getUsers();
     const found = users.find(u => u.email.toLowerCase() === cleanEmail && u.password === password);
 
     if (!found) {
@@ -393,7 +462,7 @@ function createStore(initialState) {
     }
 
     setCurrentUser(found);
-    return { success: true, user: found };
+    return { success: true, user: found, remote: false };
   }
 
   function quickLogin() {

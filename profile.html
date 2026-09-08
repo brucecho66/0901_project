@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="프로필 페이지 - Dev.Blog">
+  <title>프로필 | Dev.Blog</title>
+
+  <!-- Pretendard Web Font CDN -->
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="css/reset.css">
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/blog.css">
+</head>
+<body>
+
+  <!-- 공통 헤더 -->
+  <div id="blogHeader"></div>
+
+  <!-- 메인 프로필 컨텐츠 -->
+  <main class="blog-main">
+    <div class="container">
+      <div class="profile-wrapper">
+
+        <!-- 프로필 메인 카드 -->
+        <div class="profile-card-main">
+          <div class="profile-header-layout">
+            <div style="position: relative;">
+              <img id="profileAvatar" src="assets/images/profile.svg" alt="프로필 사진" class="profile-avatar-large">
+              <label for="avatarUploadInput" class="photo-change-label" style="margin-top: 0.5rem; display: block; text-align: center; cursor: pointer; font-size: 0.75rem; color: var(--accent-primary);">
+                사진 변경
+              </label>
+              <input type="file" id="avatarUploadInput" accept="image/*" style="display: none;">
+            </div>
+
+            <div class="profile-main-meta">
+              <div class="profile-name-row">
+                <h1 class="profile-display-name" id="profileDisplayName">홍길동</h1>
+                <span class="profile-role-badge" id="profileRoleBadge">Author</span>
+              </div>
+              <p class="profile-email" id="profileEmail">hong@example.com</p>
+              <p class="profile-bio-text" id="profileBio">
+                문제를 집요하게 해결하는 풀스택 웹 개발자입니다. 사용자 중심의 인터랙션과 웹 성능 최적화, 지속 가능한 아키텍처에 관심이 많습니다.
+              </p>
+
+              <div style="margin-top: 1rem; display: flex; gap: 0.5rem;" id="profileActionGroup">
+                <button id="toggleEditBtn" class="btn btn-sm btn-secondary">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                  <span>프로필 수정</span>
+                </button>
+                <a href="https://github.com/brucecho66" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-secondary">GitHub</a>
+              </div>
+            </div>
+          </div>
+
+          <!-- 프로필 수정 폼 (토글) -->
+          <div class="profile-edit-box" id="profileEditBox">
+            <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 1rem;">내 프로필 정보 수정</h3>
+            <form id="editProfileForm">
+              <div class="editor-form-group">
+                <label for="editName" class="editor-label">이름 / 닉네임</label>
+                <input type="text" id="editName" class="editor-input" required>
+              </div>
+              <div class="editor-form-group">
+                <label for="editBio" class="editor-label">한 줄 소개</label>
+                <textarea id="editBio" class="editor-input" rows="3"></textarea>
+              </div>
+              <div class="editor-form-group">
+                <label for="editTech" class="editor-label">보유 기술 스택 (쉼표 구분)</label>
+                <input type="text" id="editTech" class="editor-input" placeholder="JavaScript, React, HTML5/CSS3">
+              </div>
+              <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                <button type="button" id="cancelEditBtn" class="btn btn-sm btn-secondary">취소</button>
+                <button type="submit" class="btn btn-sm btn-primary">저장하기</button>
+              </div>
+            </form>
+          </div>
+
+          <!-- 통계 카드 그리드 -->
+          <div class="profile-stats-grid">
+            <div class="profile-stat-box">
+              <div class="profile-stat-val" id="statPostsCount">0</div>
+              <div class="profile-stat-lbl">작성한 글</div>
+            </div>
+            <div class="profile-stat-box">
+              <div class="profile-stat-val" id="statViewsCount">0</div>
+              <div class="profile-stat-lbl">누적 조회수</div>
+            </div>
+            <div class="profile-stat-box">
+              <div class="profile-stat-val" id="statLikesCount">0</div>
+              <div class="profile-stat-lbl">받은 좋아요</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 프로필 하단 탭 (작성한 글 / 기술 스택 및 소개) -->
+        <div class="profile-tabs">
+          <button class="profile-tab-btn active" data-tab="tabPosts">내가 작성한 글 (<span id="tabPostsCount">0</span>)</button>
+          <button class="profile-tab-btn" data-tab="tabSkills">기술 스택 및 상세 소개</button>
+        </div>
+
+        <!-- 탭 1: 작성한 글 목록 -->
+        <div class="profile-tab-pane active" id="tabPosts">
+          <div class="posts-grid" id="myPostsGrid">
+            <!-- 동적 렌더링 -->
+          </div>
+        </div>
+
+        <!-- 탭 2: 기술 스택 및 상세 소개 (기존 프로필 데이터 보존) -->
+        <div class="profile-tab-pane" id="tabSkills">
+          <div class="editor-card" style="margin-bottom: 2rem;">
+            <h2 style="font-size: 1.4rem; font-weight: 800; margin-bottom: 1rem;">🚀 핵심 기술 스택</h2>
+            <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 2rem;" id="techStackContainer">
+              <!-- 동적 렌더링 -->
+            </div>
+
+            <h2 style="font-size: 1.4rem; font-weight: 800; margin-bottom: 1rem;">💡 가치관 & 개발 철학</h2>
+            <div style="line-height: 1.8; color: var(--text-secondary);">
+              <p style="margin-bottom: 1rem;">
+                화려한 도구의 유행에 휩쓸리기보다는 웹의 근간이 되는 <strong>HTML 시맨틱 마크업, 반응형 CSS 레이아웃, 모던 JavaScript의 비동기 및 이벤트 메커니즘</strong>을 철저하게 체득하여 사용자에게 가장 빠르고 안정적인 웹 경험을 제공합니다.
+              </p>
+              <ul style="padding-left: 1.5rem; margin-bottom: 1rem;">
+                <li style="margin-bottom: 0.5rem;"><strong>사용자 중심 사고</strong>: 접근성과 웹 성능 지표(Core Web Vitals)를 지속적으로 측정하고 개선합니다.</li>
+                <li style="margin-bottom: 0.5rem;"><strong>지속 가능한 코드</strong>: 명확한 네이밍과 모듈화로 동료 개발자가 읽기 쉬운 클린 아키텍처를 추구합니다.</li>
+                <li style="margin-bottom: 0.5rem;"><strong>기록과 공유</strong>: 문제를 해결한 과정과 배운 점을 블로그 글로 아카이빙하여 커뮤니티와 함께 성장합니다.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <!-- 공통 푸터 -->
+  <div id="blogFooter"></div>
+
+  <!-- Scripts -->
+  <script src="js/store.js"></script>
+  <script src="js/theme.js"></script>
+  <script src="js/common.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      BlogCommon.renderHeader('profile');
+      BlogCommon.renderFooter();
+
+      let currentUser = BlogStore.getCurrentUser();
+      const users = BlogStore.getUsers();
+      // 비로그인 시 기본 운영자 프로필 표시
+      const displayUser = currentUser || users[0];
+
+      const profileDisplayName = document.getElementById('profileDisplayName');
+      const profileRoleBadge = document.getElementById('profileRoleBadge');
+      const profileEmail = document.getElementById('profileEmail');
+      const profileBio = document.getElementById('profileBio');
+      const profileAvatar = document.getElementById('profileAvatar');
+      const toggleEditBtn = document.getElementById('toggleEditBtn');
+      const profileEditBox = document.getElementById('profileEditBox');
+      const cancelEditBtn = document.getElementById('cancelEditBtn');
+      const editProfileForm = document.getElementById('editProfileForm');
+
+      const editName = document.getElementById('editName');
+      const editBio = document.getElementById('editBio');
+      const editTech = document.getElementById('editTech');
+
+      const statPostsCount = document.getElementById('statPostsCount');
+      const statViewsCount = document.getElementById('statViewsCount');
+      const statLikesCount = document.getElementById('statLikesCount');
+      const tabPostsCount = document.getElementById('tabPostsCount');
+      const myPostsGrid = document.getElementById('myPostsGrid');
+      const techStackContainer = document.getElementById('techStackContainer');
+
+      // 1. 프로필 정보 바인딩
+      function populateProfile(user) {
+        profileDisplayName.textContent = user.name;
+        profileEmail.textContent = user.email;
+        profileBio.textContent = user.bio || '등록된 소개글이 없습니다.';
+        profileRoleBadge.textContent = user.role === 'author' ? 'Blog Author' : 'Member';
+        if (user.avatar) profileAvatar.src = user.avatar;
+
+        // 수정 폼 기본값 세팅
+        editName.value = user.name;
+        editBio.value = user.bio || '';
+        editTech.value = (user.techStack || []).join(', ');
+
+        // 기술 스택 렌더링
+        const stackList = user.techStack && user.techStack.length > 0
+          ? user.techStack
+          : ['JavaScript', 'HTML5', 'CSS3', 'Git'];
+
+        techStackContainer.innerHTML = stackList.map(s => `
+          <span class="category-pill active" style="cursor: default;">${s}</span>
+        `).join('');
+
+        // 비로그인 상태이면 편집 버튼 숨김 / 로그인 안내 표시
+        if (!currentUser) {
+          toggleEditBtn.style.display = 'none';
+          document.querySelector('label[for="avatarUploadInput"]').style.display = 'none';
+        }
+      }
+
+      // 2. 작성글 및 통계 계산
+      function populateStatsAndPosts(user) {
+        const allPosts = BlogStore.getPosts();
+        const myPosts = allPosts.filter(p => p.authorId === user.id || (!p.authorId && user.role === 'author'));
+
+        const totalViews = myPosts.reduce((acc, p) => acc + (p.views || 0), 0);
+        const totalLikes = myPosts.reduce((acc, p) => acc + (p.likes || 0), 0);
+
+        statPostsCount.textContent = myPosts.length;
+        tabPostsCount.textContent = myPosts.length;
+        statViewsCount.textContent = totalViews;
+        statLikesCount.textContent = totalLikes;
+
+        if (myPosts.length === 0) {
+          myPostsGrid.innerHTML = `
+            <div class="posts-empty-state">
+              <h3 class="empty-title">작성된 게시글이 없습니다</h3>
+              <p class="empty-desc">첫 번째 생각과 지식을 블로그에 기록해 보세요!</p>
+              <a href="post-write.html" class="btn btn-primary">새 글 작성하기</a>
+            </div>
+          `;
+          return;
+        }
+
+        myPostsGrid.innerHTML = myPosts.map(post => {
+          const dateStr = BlogStore.formatDate(post.createdAt);
+          const commentsCount = post.comments ? post.comments.length : 0;
+          const tagsHtml = (post.tags || []).map(t => `<span class="post-tag">#${t}</span>`).join('');
+
+          return `
+            <a href="post-detail.html?id=${post.id}" class="post-card">
+              <div class="post-card-thumb-wrapper">
+                <div class="post-card-thumb-pattern"></div>
+                <div class="post-card-thumb-icon">
+                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                </div>
+                <span class="post-category-badge">${post.category || '개발'}</span>
+              </div>
+              <div class="post-card-body">
+                <div class="post-card-meta-top">
+                  <span class="post-card-date">${dateStr}</span>
+                </div>
+                <h3 class="post-card-title">${post.title}</h3>
+                <p class="post-card-excerpt">${post.excerpt || ''}</p>
+                <div class="post-card-tags">${tagsHtml}</div>
+                <div class="post-card-footer">
+                  <span>조회 ${post.views || 0} · 좋아요 ${post.likes || 0} · 댓글 ${commentsCount}</span>
+                  <span style="color: var(--accent-primary); font-weight: 700;">읽기 &rarr;</span>
+                </div>
+              </div>
+            </a>
+          `;
+        }).join('');
+      }
+
+      // 3. 사진 업로드 시 실시간 미리보기 및 저장
+      const avatarUploadInput = document.getElementById('avatarUploadInput');
+      avatarUploadInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const base64Data = event.target.result;
+          profileAvatar.src = base64Data;
+          if (currentUser) {
+            BlogStore.updateProfile({ avatar: base64Data });
+            BlogCommon.renderHeader('profile');
+            BlogCommon.toast('프로필 사진이 업데이트되었습니다.', 'success');
+          }
+        };
+        reader.readAsDataURL(file);
+      });
+
+      // 4. 프로필 수정 토글
+      toggleEditBtn.addEventListener('click', () => {
+        profileEditBox.classList.toggle('active');
+      });
+
+      cancelEditBtn.addEventListener('click', () => {
+        profileEditBox.classList.remove('active');
+      });
+
+      editProfileForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const newName = editName.value.trim();
+        const newBio = editBio.value.trim();
+        const newTech = editTech.value.split(',').map(s => s.trim()).filter(Boolean);
+
+        const res = BlogStore.updateProfile({
+          name: newName,
+          bio: newBio,
+          techStack: newTech
+        });
+
+        if (res.success) {
+          currentUser = res.user;
+          populateProfile(currentUser);
+          profileEditBox.classList.remove('active');
+          BlogCommon.renderHeader('profile');
+          BlogCommon.toast('프로필 정보가 저장되었습니다!', 'success');
+        } else {
+          BlogCommon.toast(res.message || '저장 실패', 'error');
+        }
+      });
+
+      // 5. 탭 전환
+      document.querySelectorAll('.profile-tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.profile-tab-btn').forEach(b => b.classList.remove('active'));
+          document.querySelectorAll('.profile-tab-pane').forEach(p => p.classList.remove('active'));
+
+          btn.classList.add('active');
+          const targetPane = document.getElementById(btn.dataset.tab);
+          if (targetPane) targetPane.classList.add('active');
+        });
+      });
+
+      // 초기 실행
+      populateProfile(displayUser);
+      populateStatsAndPosts(displayUser);
+    });
+  </script>
+</body>
+</html>

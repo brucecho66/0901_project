@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="새 게시글 작성 및 수정 - Dev.Blog">
+  <title>게시글 작성 | Dev.Blog</title>
+
+  <!-- Pretendard Web Font CDN -->
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="css/reset.css">
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/blog.css">
+</head>
+<body>
+
+  <!-- 공통 헤더 -->
+  <div id="blogHeader"></div>
+
+  <!-- 메인 에디터 컨텐츠 영역 -->
+  <main class="blog-main">
+    <div class="container">
+      <div class="editor-wrapper">
+        <div class="editor-card">
+          
+          <div class="editor-header">
+            <h1 id="editorPageTitle">새 게시글 작성</h1>
+            <p class="section-subtitle">마크다운(Markdown) 문법을 활용하여 지식과 아이디어를 자유롭게 기록해 보세요.</p>
+          </div>
+
+          <form id="postEditorForm">
+            <!-- 제목 입력 -->
+            <div class="editor-form-group">
+              <label for="postTitle" class="editor-label">제목 *</label>
+              <input type="text" id="postTitle" class="editor-title-input" placeholder="제목을 입력하세요..." required autocomplete="off">
+            </div>
+
+            <!-- 카테고리 & 태그 -->
+            <div class="editor-form-group editor-row-fields">
+              <div>
+                <label for="postCategory" class="editor-label">카테고리 *</label>
+                <select id="postCategory" class="editor-select" required>
+                  <option value="프론트엔드">프론트엔드</option>
+                  <option value="개발">개발</option>
+                  <option value="UI/UX">UI/UX</option>
+                  <option value="회고">회고</option>
+                  <option value="일상">일상</option>
+                </select>
+              </div>
+
+              <div>
+                <label for="postTags" class="editor-label">태그 (쉼표로 구분)</label>
+                <input type="text" id="postTags" class="editor-input" placeholder="예: JavaScript, CSS, 웹최적화">
+              </div>
+            </div>
+
+            <!-- 요약글 (선택) -->
+            <div class="editor-form-group">
+              <label for="postExcerpt" class="editor-label">게시글 요약 (선택사항, 미입력 시 본문 앞부분 자동 추출)</label>
+              <input type="text" id="postExcerpt" class="editor-input" placeholder="목록 카드에 표시될 한 줄 요약글을 입력하세요">
+            </div>
+
+            <!-- 본문 에디터 (툴바 + 탭 + 텍스트에리어) -->
+            <div class="editor-form-group">
+              <label class="editor-label">본문 내용 *</label>
+              
+              <!-- 마크다운 툴바 -->
+              <div class="editor-toolbar">
+                <button type="button" class="toolbar-btn" data-action="h2" title="제목 2">H2</button>
+                <button type="button" class="toolbar-btn" data-action="h3" title="제목 3">H3</button>
+                <div class="toolbar-divider"></div>
+                <button type="button" class="toolbar-btn" data-action="bold" title="굵게"><strong>B</strong></button>
+                <button type="button" class="toolbar-btn" data-action="italic" title="기울임"><em>I</em></button>
+                <div class="toolbar-divider"></div>
+                <button type="button" class="toolbar-btn" data-action="code" title="코드 블록">&lt;/&gt;</button>
+                <button type="button" class="toolbar-btn" data-action="quote" title="인용구">&ldquo;</button>
+                <button type="button" class="toolbar-btn" data-action="list" title="글머리 기호">&bull;</button>
+                <button type="button" class="toolbar-btn" data-action="hr" title="구분선">&mdash;</button>
+
+                <!-- 탭 전환 -->
+                <div class="editor-tab-nav">
+                  <button type="button" id="tabWriteBtn" class="editor-tab-btn active">작성</button>
+                  <button type="button" id="tabPreviewBtn" class="editor-tab-btn">미리보기</button>
+                </div>
+              </div>
+
+              <!-- 편집 텍스트에리어 -->
+              <textarea id="postContent" class="editor-textarea" placeholder="이곳에 마크다운 형식으로 내용을 작성하세요...
+
+## 소제목 작성
+- 목록 작성하기
+- 코드 블록은 ```javascript ... ``` 형태로 작성
+
+> 유용한 팁이나 인용구 작성" required></textarea>
+
+              <!-- 실시간 미리보기 창 -->
+              <div id="editorPreview" class="editor-preview-pane post-detail-content">
+                <!-- 마크다운 미리보기 -->
+              </div>
+            </div>
+
+            <!-- 버튼 액션 -->
+            <div class="editor-actions-row">
+              <a href="index.html" class="btn btn-secondary" id="cancelBtn">취소</a>
+              <button type="submit" class="btn btn-primary" id="submitBtn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                <span id="submitBtnText">게시글 발행하기</span>
+              </button>
+            </div>
+
+          </form>
+
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- 공통 푸터 -->
+  <div id="blogFooter"></div>
+
+  <!-- Scripts -->
+  <script src="js/store.js"></script>
+  <script src="js/theme.js"></script>
+  <script src="js/common.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      BlogCommon.renderHeader('write');
+      BlogCommon.renderFooter();
+
+      // 1. 비로그인 접근 시 처리
+      let currentUser = BlogStore.getCurrentUser();
+      if (!currentUser) {
+        // 간편 작성 경험을 위해 테스트 계정으로 자동 로그인 안내 또는 로그인 페이지 연결
+        if (confirm('게시글 작성은 로그인이 필요합니다.\n체험 계정(홍길동)으로 바로 로그인하여 글을 작성하시겠습니까?')) {
+          BlogStore.quickLogin();
+          currentUser = BlogStore.getCurrentUser();
+          BlogCommon.renderHeader('write');
+          BlogCommon.toast('체험 계정으로 로그인되었습니다.', 'success');
+        } else {
+          window.location.href = 'login.html?redirect=post-write.html';
+          return;
+        }
+      }
+
+      // 2. 수정 모드 판별
+      const urlParams = new URLSearchParams(window.location.search);
+      const editPostId = urlParams.get('id');
+      let isEditMode = false;
+      let targetPost = null;
+
+      const titleInput = document.getElementById('postTitle');
+      const categorySelect = document.getElementById('postCategory');
+      const tagsInput = document.getElementById('postTags');
+      const excerptInput = document.getElementById('postExcerpt');
+      const contentTextarea = document.getElementById('postContent');
+      const pageTitle = document.getElementById('editorPageTitle');
+      const submitBtnText = document.getElementById('submitBtnText');
+      const cancelBtn = document.getElementById('cancelBtn');
+
+      if (editPostId) {
+        targetPost = BlogStore.getPostById(editPostId);
+        if (targetPost) {
+          // 권한 체크
+          if (currentUser.id === targetPost.authorId || currentUser.role === 'author') {
+            isEditMode = true;
+            pageTitle.textContent = '게시글 수정';
+            submitBtnText.textContent = '수정 완료';
+            document.title = '게시글 수정 | Dev.Blog';
+            cancelBtn.href = `post-detail.html?id=${targetPost.id}`;
+
+            // 기존 데이터 세팅
+            titleInput.value = targetPost.title || '';
+            categorySelect.value = targetPost.category || '개발';
+            tagsInput.value = (targetPost.tags || []).join(', ');
+            excerptInput.value = targetPost.excerpt || '';
+            contentTextarea.value = targetPost.content || '';
+          } else {
+            BlogCommon.toast('수정 권한이 없습니다.', 'error');
+            setTimeout(() => { window.location.href = 'index.html'; }, 1000);
+            return;
+          }
+        }
+      }
+
+      // 3. 탭 전환 (작성 vs 미리보기)
+      const tabWriteBtn = document.getElementById('tabWriteBtn');
+      const tabPreviewBtn = document.getElementById('tabPreviewBtn');
+      const previewPane = document.getElementById('editorPreview');
+
+      tabWriteBtn.addEventListener('click', () => {
+        tabWriteBtn.classList.add('active');
+        tabPreviewBtn.classList.remove('active');
+        contentTextarea.style.display = 'block';
+        previewPane.classList.remove('active');
+      });
+
+      tabPreviewBtn.addEventListener('click', () => {
+        tabPreviewBtn.classList.add('active');
+        tabWriteBtn.classList.remove('active');
+        contentTextarea.style.display = 'none';
+        previewPane.classList.add('active');
+
+        // 마크다운 파싱 및 표시
+        const rawContent = contentTextarea.value.trim();
+        if (rawContent) {
+          previewPane.innerHTML = BlogStore.renderMarkdown(rawContent);
+        } else {
+          previewPane.innerHTML = '<p style="color: var(--text-muted); font-style: italic;">본문 내용을 입력하시면 이곳에 실시간 서식이 렌더링됩니다.</p>';
+        }
+      });
+
+      // 4. 툴바 기능 연동
+      document.querySelectorAll('.toolbar-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const action = btn.dataset.action;
+          insertFormatting(action);
+        });
+      });
+
+      function insertFormatting(action) {
+        const start = contentTextarea.selectionStart;
+        const end = contentTextarea.selectionEnd;
+        const val = contentTextarea.value;
+        const selected = val.substring(start, end);
+        let replacement = '';
+
+        switch (action) {
+          case 'h2': replacement = `\n## ${selected || '소제목'}\n`; break;
+          case 'h3': replacement = `\n### ${selected || '상세 제목'}\n`; break;
+          case 'bold': replacement = `**${selected || '굵은 글씨'}**`; break;
+          case 'italic': replacement = `*${selected || '기울임'}*`; break;
+          case 'code': replacement = `\n\`\`\`javascript\n${selected || '// 코드 입력'}\n\`\`\`\n`; break;
+          case 'quote': replacement = `\n> ${selected || '인용문'}\n`; break;
+          case 'list': replacement = `\n- ${selected || '목록 내용'}\n`; break;
+          case 'hr': replacement = `\n---\n`; break;
+        }
+
+        contentTextarea.value = val.substring(0, start) + replacement + val.substring(end);
+        contentTextarea.focus();
+        contentTextarea.setSelectionRange(start + replacement.length, start + replacement.length);
+      }
+
+      // 5. 폼 제출 처리
+      const form = document.getElementById('postEditorForm');
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+
+        const title = titleInput.value.trim();
+        const category = categorySelect.value;
+        const tags = tagsInput.value;
+        const excerpt = excerptInput.value.trim();
+        const content = contentTextarea.value.trim();
+
+        if (!title || !content) {
+          BlogCommon.toast('제목과 본문을 모두 입력해 주세요.', 'error');
+          return;
+        }
+
+        if (isEditMode) {
+          const res = BlogStore.updatePost(targetPost.id, {
+            title,
+            category,
+            tags,
+            excerpt,
+            content
+          });
+
+          if (res.success) {
+            BlogCommon.toast('게시글이 성공적으로 수정되었습니다!', 'success');
+            setTimeout(() => {
+              window.location.href = `post-detail.html?id=${targetPost.id}`;
+            }, 600);
+          } else {
+            BlogCommon.toast(res.message || '게시글 수정 실패', 'error');
+          }
+        } else {
+          const res = BlogStore.createPost({
+            title,
+            category,
+            tags,
+            excerpt,
+            content
+          });
+
+          if (res.success) {
+            BlogCommon.toast('새 게시글이 성공적으로 등록되었습니다!', 'success');
+            setTimeout(() => {
+              window.location.href = `post-detail.html?id=${res.post.id}`;
+            }, 600);
+          } else {
+            BlogCommon.toast(res.message || '게시글 등록 실패', 'error');
+          }
+        }
+      });
+    });
+  </script>
+</body>
+</html>

@@ -1,5 +1,5 @@
 /**
- * store.js - 블로그 데이터 스토리지 및 인증/게시글 관리 모듈 (LocalStorage 기반)
+ * store.js - 블로그 데이터 스토리지 및 Google Sheets (Apps Script) 연동 모듈
  */
 
 (function (window) {
@@ -9,7 +9,14 @@
     USERS: 'devlog_users',
     CURRENT_USER: 'devlog_current_user',
     POSTS: 'devlog_posts',
-    INIT: 'devlog_initialized_v2'
+    INIT: 'devlog_initialized_v2',
+    GAS_URL: 'devlog_gas_api_url'
+  };
+
+  // 연결된 구글 스프레드시트 설정 정보
+  const GOOGLE_CONFIG = {
+    SPREADSHEET_ID: '1dzsv8e3o-LaAnL2smrrzB_YrVqloz51AUcQTNE5Xelc',
+    SPREADSHEET_URL: 'https://docs.google.com/spreadsheets/d/1dzsv8e3o-LaAnL2smrrzB_YrVqloz51AUcQTNE5Xelc/edit'
   };
 
   // 초기 시드 데이터 (풍부한 기술 블로그 글)
@@ -112,7 +119,6 @@ function createStore(initialState) {
   const state = new Proxy(initialState, {
     set(target, property, value) {
       target[property] = value;
-      // 상태 변경 시 등록된 모든 구독자에게 알림
       listeners.forEach(fn => fn(target));
       return true;
     }
@@ -181,14 +187,7 @@ function createStore(initialState) {
 }
 \`\`\`
 
-컴포넌트 스타일에서는 절대로 고정 색상(\`#ffffff\`)을 직접 사용하지 않고 언제나 의미론적 변수(\`var(--bg-primary)\`)를 참조하도록 강제합니다. 이 규칙 하나만으로도 완벽한 다크모드 대응이 보장됩니다.
-
----
-
-### 2. 레이아웃 안정성과 유연성
-Flexbox와 Grid를 목적에 맞게 분리하여 사용합니다:
-- **1차원 정렬(내비게이션, 버튼 그룹, 툴바)**: Flexbox
-- **2차원 정렬(포스트 카드 그리드, 대시보드)**: CSS Grid (\`repeat(auto-fit, minmax(300px, 1fr))\`)`,
+컴포넌트 스타일에서는 절대로 고정 색상(\`#ffffff\`)을 직접 사용하지 않고 언제나 의미론적 변수(\`var(--bg-primary)\`)를 참조하도록 강제합니다. 이 규칙 하나만으로도 완벽한 다크모드 대응이 보장됩니다.`,
       authorId: 'u_hong',
       authorName: '홍길동',
       authorAvatar: 'assets/images/profile.svg',
@@ -244,6 +243,82 @@ Flexbox와 Grid를 목적에 맞게 분리하여 사용합니다:
       localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(INITIAL_USERS));
       localStorage.setItem(STORAGE_KEYS.POSTS, JSON.stringify(INITIAL_POSTS));
       localStorage.setItem(STORAGE_KEYS.INIT, 'true');
+    }
+    // Google Sheets 연동 URL이 있다면 원격 데이터 동기화 시도
+    syncFromGoogleSheets();
+  }
+
+  // --- Google Sheets (Apps Script) 연동 API ---
+
+  function getGasUrl() {
+    return localStorage.getItem(STORAGE_KEYS.GAS_URL) || '';
+  }
+
+  function setGasUrl(url) {
+    if (url && url.trim()) {
+      localStorage.setItem(STORAGE_KEYS.GAS_URL, url.trim());
+      syncFromGoogleSheets();
+      return true;
+    } else {
+      localStorage.removeItem(STORAGE_KEYS.GAS_URL);
+      return false;
+    }
+  }
+
+  // 원격 구글 시트로부터 게시글 목록 동기화
+  async function syncFromGoogleSheets() {
+    const gasUrl = getGasUrl();
+    if (!gasUrl) return false;
+
+    try {
+      const fetchUrl = gasUrl + (gasUrl.includes('?') ? '&' : '?') + 'action=getPosts&_t=' + Date.now();
+      const response = await fetch(fetchUrl, {
+        method: 'GET',
+        mode: 'cors'
+      });
+      if (!response.ok) return false;
+
+      const data = await response.json();
+      if (data.success && Array.isArray(data.posts) && data.posts.length > 0) {
+        // 원격 구글 시트 게시글과 로컬 게시글 병합 (원격 우선)
+        const localPosts = getPosts();
+        const mergedMap = new Map();
+        
+        // 원격 글 먼저 등록
+        data.posts.forEach(p => mergedMap.set(p.id, p));
+        // 로컬 글 중 원격에 아직 안 올라간 글 유지
+        localPosts.forEach(p => {
+          if (!mergedMap.has(p.id)) mergedMap.set(p.id, p);
+        });
+
+        const mergedList = Array.from(mergedMap.values());
+        savePosts(mergedList);
+        console.log('[DevBlog] 구글 스프레드시트와 실시간 동기화 완료! 총 ' + mergedList.length + '개 글');
+        return true;
+      }
+    } catch (err) {
+      console.warn('[DevBlog] 구글 시트 동기화 실패 (오프라인/CORS 설정 확인):', err);
+    }
+    return false;
+  }
+
+  // 원격 구글 시트로 POST 비동기 전송 헬퍼
+  function sendToGoogleSheets(payload) {
+    const gasUrl = getGasUrl();
+    if (!gasUrl) return;
+
+    try {
+      // text/plain 형식으로 전송해야 브라우저의 불필요한 CORS preflight(OPTIONS) 차단을 우회할 수 있습니다.
+      fetch(gasUrl, {
+        method: 'POST',
+        mode: 'cors',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload)
+      }).catch(err => {
+        console.warn('[DevBlog] 구글 시트 백엔드 전송 경고:', err);
+      });
+    } catch (e) {
+      console.error(e);
     }
   }
 
@@ -426,6 +501,8 @@ Flexbox와 Grid를 목적에 맞게 분리하여 사용합니다:
     if (post) {
       post.views = (post.views || 0) + 1;
       savePosts(posts);
+      // 구글 스프레드시트로 조회수 비동기 전송
+      sendToGoogleSheets({ action: 'viewPost', postId: id });
       return post.views;
     }
     return 0;
@@ -454,6 +531,12 @@ Flexbox와 Grid를 목적에 맞게 분리하여 사용합니다:
     }
 
     savePosts(posts);
+
+    // 구글 스프레드시트에 좋아요 비동기 반영
+    if (!hasLiked) {
+      sendToGoogleSheets({ action: 'likePost', postId: id });
+    }
+
     return { success: true, likes: post.likes, hasLiked: !hasLiked };
   }
 
@@ -498,6 +581,20 @@ Flexbox와 Grid를 목적에 맞게 분리하여 사용합니다:
 
     posts.unshift(newPost);
     savePosts(posts);
+
+    // 구글 스프레드시트에 비동기 전송
+    sendToGoogleSheets({
+      action: 'createPost',
+      id: newPost.id,
+      title: newPost.title,
+      category: newPost.category,
+      tags: newPost.tags,
+      excerpt: newPost.excerpt,
+      content: newPost.content,
+      authorName: newPost.authorName,
+      authorAvatar: newPost.authorAvatar,
+      createdAt: newPost.createdAt
+    });
 
     return { success: true, post: newPost };
   }
@@ -567,6 +664,14 @@ Flexbox와 Grid를 목적에 맞게 분리하여 사용합니다:
 
     post.comments.push(newComment);
     savePosts(posts);
+
+    // 구글 스프레드시트에 댓글 비동기 전송
+    sendToGoogleSheets({
+      action: 'addComment',
+      postId: postId,
+      authorName: finalAuthorName,
+      content: newComment.content
+    });
 
     return { success: true, comment: newComment };
   }
@@ -656,6 +761,13 @@ Flexbox와 Grid를 목적에 맞게 분리하여 사용합니다:
   initStore();
 
   window.BlogStore = {
+    // Config & Google Sheets
+    GOOGLE_CONFIG,
+    getGasUrl,
+    setGasUrl,
+    syncFromGoogleSheets,
+
+    // Auth
     getUsers,
     getCurrentUser,
     setCurrentUser,
@@ -665,6 +777,7 @@ Flexbox와 Grid를 목적에 맞게 분리하여 사용합니다:
     logout,
     updateProfile,
 
+    // Posts
     getPosts,
     queryPosts,
     getPostById,
@@ -675,9 +788,11 @@ Flexbox와 Grid를 목적에 맞게 분리하여 사용합니다:
     updatePost,
     deletePost,
 
+    // Comments
     addComment,
     deleteComment,
 
+    // Utils
     formatDate,
     calculateReadingTime,
     renderMarkdown

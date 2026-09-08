@@ -16,7 +16,8 @@
   // 연결된 구글 스프레드시트 설정 정보
   const GOOGLE_CONFIG = {
     SPREADSHEET_ID: '1dzsv8e3o-LaAnL2smrrzB_YrVqloz51AUcQTNE5Xelc',
-    SPREADSHEET_URL: 'https://docs.google.com/spreadsheets/d/1dzsv8e3o-LaAnL2smrrzB_YrVqloz51AUcQTNE5Xelc/edit'
+    SPREADSHEET_URL: 'https://docs.google.com/spreadsheets/d/1dzsv8e3o-LaAnL2smrrzB_YrVqloz51AUcQTNE5Xelc/edit',
+    DEFAULT_GAS_URL: 'https://script.google.com/macros/s/AKfycbyASFOeJQL_fk2w1-QuqXo7NTRvSyS8q47Cmw3sdEmjb_aF0QCa2EWN9uirPSFd1h4UPw/exec'
   };
 
   // 초기 시드 데이터 (풍부한 기술 블로그 글)
@@ -251,7 +252,7 @@ function createStore(initialState) {
   // --- Google Sheets (Apps Script) 연동 API ---
 
   function getGasUrl() {
-    return localStorage.getItem(STORAGE_KEYS.GAS_URL) || '';
+    return localStorage.getItem(STORAGE_KEYS.GAS_URL) || GOOGLE_CONFIG.DEFAULT_GAS_URL || '';
   }
 
   function setGasUrl(url) {

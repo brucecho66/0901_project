@@ -6,7 +6,8 @@
   <meta name="description" content="새 게시글 작성 및 수정 - Dev.Blog">
   <title>게시글 작성 | Dev.Blog</title>
 
-  <!-- Pretendard Web Font CDN -->
+  <!-- Pretendard Web Font CDN (사전 연결 최적화) -->
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
 
   <!-- Stylesheets -->
@@ -33,6 +34,18 @@
             </div>
             <h1 id="editorPageTitle">새 글 쓰기</h1>
             <p class="section-subtitle">마크다운(Markdown) 문법을 활용하여 지식과 아이디어를 자유롭게 기록해 보세요.</p>
+          </div>
+
+          <!-- 임시 저장 복원 알림 배너 -->
+          <div id="draftRestoreBanner" class="draft-restore-banner" style="display: none;">
+            <div class="draft-banner-content">
+              <span>💾</span>
+              <span>작성 중이던 <strong>임시 저장 글</strong>이 있습니다. <span id="draftSavedTimeText" style="color: var(--text-muted); font-size: 0.8rem;"></span></span>
+            </div>
+            <div class="draft-banner-actions">
+              <button type="button" class="btn btn-sm btn-primary" id="restoreDraftBtn">불러오기</button>
+              <button type="button" class="btn btn-sm btn-secondary" id="discardDraftBtn">삭제</button>
+            </div>
           </div>
 
           <form id="postEditorForm">
@@ -108,6 +121,13 @@
 
             <!-- 버튼 액션 -->
             <div class="editor-actions-row">
+              <div class="draft-status-indicator" id="draftStatusIndicator">
+                <span id="draftStatusIcon">📝</span>
+                <span id="draftStatusText">작성 중...</span>
+              </div>
+              <button type="button" class="btn btn-secondary" id="manualSaveDraftBtn" title="현재 작성 내용을 로컬 스토리지에 임시 저장">
+                <span>임시 저장</span>
+              </button>
               <a href="index.html" class="btn btn-secondary" id="cancelBtn">취소</a>
               <button type="submit" class="btn btn-primary" id="submitBtn">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
@@ -189,6 +209,105 @@
         }
       }
 
+      // 2.1 임시 저장 글 복원 처리 (새 글 작성 모드일 때만)
+      if (!isEditMode) {
+        const savedDraft = BlogStore.getDraft();
+        if (savedDraft && (savedDraft.title || savedDraft.content)) {
+          const banner = document.getElementById('draftRestoreBanner');
+          const timeEl = document.getElementById('draftSavedTimeText');
+          if (banner) {
+            if (timeEl && savedDraft.updatedAt) {
+              const d = new Date(savedDraft.updatedAt);
+              timeEl.textContent = `(저장: ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})`;
+            }
+            banner.style.display = 'flex';
+          }
+        }
+      }
+
+      // 복원 버튼 클릭
+      document.getElementById('restoreDraftBtn')?.addEventListener('click', () => {
+        const draft = BlogStore.getDraft();
+        if (draft) {
+          if (draft.title) titleInput.value = draft.title;
+          if (draft.category) categorySelect.value = draft.category;
+          if (draft.tags) tagsInput.value = Array.isArray(draft.tags) ? draft.tags.join(', ') : draft.tags;
+          if (draft.excerpt) excerptInput.value = draft.excerpt;
+          if (draft.content) contentTextarea.value = draft.content;
+
+          document.getElementById('draftRestoreBanner').style.display = 'none';
+          BlogCommon.toast('임시 저장된 내용을 성공적으로 불러왔습니다.', 'success');
+          updateDraftStatus('불러옴');
+        }
+      });
+
+      // 폐기 버튼 클릭
+      document.getElementById('discardDraftBtn')?.addEventListener('click', () => {
+        BlogStore.clearDraft();
+        document.getElementById('draftRestoreBanner').style.display = 'none';
+        BlogCommon.toast('임시 저장본이 삭제되었습니다.', 'info');
+      });
+
+      // 2.2 실시간 자동 임시 저장 (Auto-save with Debounce)
+      let autoSaveTimer = null;
+      function updateDraftStatus(msg, isSaved = false) {
+        const statusEl = document.getElementById('draftStatusIndicator');
+        const textEl = document.getElementById('draftStatusText');
+        const iconEl = document.getElementById('draftStatusIcon');
+        if (textEl) textEl.textContent = msg;
+        if (iconEl) iconEl.textContent = isSaved ? '💾' : '📝';
+        if (statusEl) statusEl.classList.toggle('saved', isSaved);
+      }
+
+      function scheduleAutoSave() {
+        if (isEditMode) return;
+        const title = titleInput.value.trim();
+        const content = contentTextarea.value.trim();
+        if (!title && !content) return;
+
+        clearTimeout(autoSaveTimer);
+        updateDraftStatus('입력 중...', false);
+
+        autoSaveTimer = setTimeout(() => {
+          BlogStore.saveDraft({
+            title: titleInput.value,
+            category: categorySelect.value,
+            tags: tagsInput.value,
+            excerpt: excerptInput.value,
+            content: contentTextarea.value
+          });
+          const now = new Date();
+          const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          updateDraftStatus(`임시 저장됨 (${timeStr})`, true);
+        }, 1200);
+      }
+
+      [titleInput, categorySelect, tagsInput, excerptInput, contentTextarea].forEach(el => {
+        el.addEventListener('input', scheduleAutoSave);
+      });
+
+      // 2.3 수동 임시 저장 버튼 클릭
+      document.getElementById('manualSaveDraftBtn')?.addEventListener('click', () => {
+        const title = titleInput.value.trim();
+        const content = contentTextarea.value.trim();
+        if (!title && !content) {
+          BlogCommon.toast('임시 저장할 내용을 입력해 주세요.', 'info');
+          return;
+        }
+
+        BlogStore.saveDraft({
+          title: titleInput.value,
+          category: categorySelect.value,
+          tags: tagsInput.value,
+          excerpt: excerptInput.value,
+          content: contentTextarea.value
+        });
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        updateDraftStatus(`임시 저장됨 (${timeStr})`, true);
+        BlogCommon.toast('현재 작성 중인 글이 안전하게 임시 저장되었습니다.', 'success');
+      });
+
       // 3. 탭 전환 (작성 vs 미리보기)
       const tabWriteBtn = document.getElementById('tabWriteBtn');
       const tabPreviewBtn = document.getElementById('tabPreviewBtn');
@@ -245,14 +364,14 @@
         contentTextarea.value = val.substring(0, start) + replacement + val.substring(end);
         contentTextarea.focus();
         contentTextarea.setSelectionRange(start + replacement.length, start + replacement.length);
+        scheduleAutoSave();
       }
 
-      // 5. 폼 제출 처리
+      // 5. 폼 제출 처리 (초고속 즉시 반응 + 백그라운드 구글 시트 저장)
       const form = document.getElementById('postEditorForm');
       const submitBtn = document.getElementById('submitBtn');
-      const submitBtnText = document.getElementById('submitBtnText');
 
-      form.addEventListener('submit', async (e) => {
+      form.addEventListener('submit', (e) => {
         e.preventDefault();
 
         const title = titleInput.value.trim();
@@ -271,7 +390,7 @@
           submitBtn.disabled = true;
           submitBtn.innerHTML = `
             <svg class="spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle><path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"></path></svg>
-            <span>${isEditMode ? '수정 내용 저장 중...' : '게시글 저장 중...'}</span>
+            <span>${isEditMode ? '수정 내용 저장 중...' : '게시글 발행 중...'}</span>
           `;
         }
 
@@ -287,14 +406,10 @@
 
             if (res.success) {
               BlogCommon.toast('게시글이 성공적으로 수정되었습니다!', 'success');
-              // 원격 전송 완료를 안전하게 대기 (최대 1.2초)
-              if (res.remotePromise) {
-                await Promise.race([
-                  res.remotePromise,
-                  new Promise(resolve => setTimeout(resolve, 1200))
-                ]);
-              }
-              window.location.href = `index.html?updatedPostId=${targetPost.id}`;
+              // 로컬에 즉시 저장 완료되었으므로 지체 없이 메인으로 이동 (구글 시트 전송은 백그라운드에서 완료)
+              setTimeout(() => {
+                window.location.href = `index.html?updatedPostId=${targetPost.id}`;
+              }, 120);
             } else {
               BlogCommon.toast(res.message || '게시글 수정 실패', 'error');
               if (submitBtn) {
@@ -316,14 +431,10 @@
 
             if (res.success) {
               BlogCommon.toast('새 게시글이 성공적으로 등록되었습니다!', 'success');
-              // 원격 전송 완료를 안전하게 대기 (최대 1.2초)
-              if (res.remotePromise) {
-                await Promise.race([
-                  res.remotePromise,
-                  new Promise(resolve => setTimeout(resolve, 1200))
-                ]);
-              }
-              window.location.href = `index.html?newPostId=${res.post.id}`;
+              // 로컬에 즉시 등록 완료되었으므로 120ms 내 초고속 메인 페이지 이동
+              setTimeout(() => {
+                window.location.href = `index.html?newPostId=${res.post.id}`;
+              }, 120);
             } else {
               BlogCommon.toast(res.message || '게시글 등록 실패', 'error');
               if (submitBtn) {

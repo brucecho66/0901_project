@@ -11,7 +11,9 @@
     POSTS: 'devlog_posts',
     INIT: 'devlog_initialized_v2',
     GAS_URL: 'devlog_gas_api_url',
-    DELETED_POSTS: 'devlog_deleted_posts'
+    DELETED_POSTS: 'devlog_deleted_posts',
+    DRAFT: 'devlog_post_draft',
+    LAST_SYNC: 'devlog_last_gas_sync'
   };
 
   // 연결된 구글 스프레드시트 설정 정보
@@ -279,10 +281,17 @@ function createStore(initialState) {
     }
   }
 
-  // 원격 구글 시트로부터 게시글 목록 동기화
-  async function syncFromGoogleSheets() {
+  // 원격 구글 시트로부터 게시글 목록 동기화 (TTL 캐시 30초 적용으로 페이지 이동 시 불필요한 지연 차단)
+  async function syncFromGoogleSheets(force = false) {
     const gasUrl = getGasUrl();
     if (!gasUrl) return false;
+
+    // 강제 동기화가 아닌 경우 30초 이내 중복 요청 스킵 (로컬 스토리지 데이터 즉시 활용)
+    const now = Date.now();
+    const lastSync = Number(localStorage.getItem(STORAGE_KEYS.LAST_SYNC) || 0);
+    if (!force && (now - lastSync < 30000)) {
+      return true;
+    }
 
     try {
       const fetchUrl = gasUrl + (gasUrl.includes('?') ? '&' : '?') + 'action=getPosts&_t=' + Date.now();
@@ -339,6 +348,7 @@ function createStore(initialState) {
         });
 
         savePosts(mergedList);
+        localStorage.setItem(STORAGE_KEYS.LAST_SYNC, String(Date.now()));
         console.log('[DevBlog] 구글 스프레드시트와 실시간 동기화 완료! 총 ' + mergedList.length + '개 글');
 
         // 4. 메인 화면 등 UI에 실시간 갱신 이벤트 통보
@@ -524,41 +534,9 @@ function createStore(initialState) {
 
   async function signup({ email, password, name, bio, techStack }) {
     const cleanEmail = email.trim().toLowerCase();
-    const gasUrl = getGasUrl();
-
-    // 1. 구글 스프레드시트 연동 시 원격 가입 우선 시도
-    if (gasUrl) {
-      try {
-        const response = await fetch(gasUrl, {
-          method: 'POST',
-          mode: 'cors',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({
-            action: 'signup',
-            email: cleanEmail,
-            password: password,
-            name: name,
-            bio: bio,
-            techStack: techStack
-          })
-        });
-        const data = await response.json();
-        if (data.success && data.user) {
-          const users = getUsers();
-          users.push(data.user);
-          saveUsers(users);
-          setCurrentUser(data.user);
-          return { success: true, user: data.user, remote: true };
-        } else {
-          return { success: false, message: data.message || '가입에 실패했습니다.' };
-        }
-      } catch (err) {
-        console.warn('[DevBlog] 구글 시트 가입 통신 실패, 로컬 모드로 진행:', err);
-      }
-    }
-
-    // 2. 로컬 스토리지 가입 (로컬 모드 또는 오프라인 Fallback)
     const users = getUsers();
+
+    // 로컬 중복 검사
     if (users.some(u => u.email.toLowerCase() === cleanEmail)) {
       return { success: false, message: '이미 등록된 이메일 계정입니다.' };
     }
@@ -575,18 +553,44 @@ function createStore(initialState) {
       createdAt: new Date().toISOString()
     };
 
+    // 1. 로컬 스토리지에 즉시 등록 (0ms 초고속 가입 및 즉각적인 로그인 상태 전환)
     users.push(newUser);
     saveUsers(users);
     setCurrentUser(newUser);
 
-    return { success: true, user: newUser, remote: false };
+    // 2. 구글 스프레드시트에 백그라운드 비동기 등록 (keepalive: true로 페이지 이동해도 완료됨)
+    sendToGoogleSheets({
+      action: 'signup',
+      email: cleanEmail,
+      password: password,
+      name: newUser.name,
+      bio: newUser.bio,
+      techStack: newUser.techStack
+    });
+
+    return { success: true, user: newUser, instant: true };
   }
 
   async function login(email, password) {
     const cleanEmail = email.trim().toLowerCase();
-    const gasUrl = getGasUrl();
 
-    // 1. 구글 스프레드시트 연동 시 원격 로그인 우선 시도
+    // 1. 로컬 스토리지 우선 검증 (Local-First: 0ms 즉각 로그인)
+    const users = getUsers();
+    const localMatch = users.find(u => u.email.toLowerCase() === cleanEmail && u.password === password);
+
+    if (localMatch) {
+      setCurrentUser(localMatch);
+      // 백그라운드에서 구글 시트 로그인 상태 비동기 전달 (UI 차단 없음)
+      sendToGoogleSheets({
+        action: 'login',
+        email: cleanEmail,
+        password: password
+      });
+      return { success: true, user: localMatch, instant: true };
+    }
+
+    // 2. 로컬에 없는 계정인 경우에만 원격 구글 시트 질의 (원격 계정 동기화)
+    const gasUrl = getGasUrl();
     if (gasUrl) {
       try {
         const response = await fetch(gasUrl, {
@@ -597,38 +601,30 @@ function createStore(initialState) {
             action: 'login',
             email: cleanEmail,
             password: password
-          })
+          }),
+          redirect: 'follow'
         });
         const data = await response.json();
         if (data.success && data.user) {
-          const users = getUsers();
-          const existingIdx = users.findIndex(u => u.id === data.user.id || u.email.toLowerCase() === cleanEmail);
+          const curUsers = getUsers();
+          const existingIdx = curUsers.findIndex(u => u.id === data.user.id || u.email.toLowerCase() === cleanEmail);
           if (existingIdx !== -1) {
-            users[existingIdx] = { ...users[existingIdx], ...data.user };
+            curUsers[existingIdx] = { ...curUsers[existingIdx], ...data.user };
           } else {
-            users.push(data.user);
+            curUsers.push(data.user);
           }
-          saveUsers(users);
+          saveUsers(curUsers);
           setCurrentUser(data.user);
           return { success: true, user: data.user, remote: true };
         } else {
           return { success: false, message: data.message || '이메일 또는 비밀번호가 일치하지 않습니다.' };
         }
       } catch (err) {
-        console.warn('[DevBlog] 구글 시트 로그인 통신 실패, 로컬 모드로 진행:', err);
+        console.warn('[DevBlog] 구글 시트 원격 로그인 실패:', err);
       }
     }
 
-    // 2. 로컬 스토리지 로그인 (로컬 모드 또는 오프라인 Fallback)
-    const users = getUsers();
-    const found = users.find(u => u.email.toLowerCase() === cleanEmail && u.password === password);
-
-    if (!found) {
-      return { success: false, message: '이메일 또는 비밀번호가 일치하지 않습니다.' };
-    }
-
-    setCurrentUser(found);
-    return { success: true, user: found, remote: false };
+    return { success: false, message: '이메일 또는 비밀번호가 일치하지 않습니다.' };
   }
 
   function quickLogin() {
@@ -817,6 +813,9 @@ function createStore(initialState) {
     posts.unshift(newPost);
     savePosts(posts);
 
+    // 새 글 발행 완료 시 임시 저장본 자동 삭제
+    clearDraft();
+
     // 구글 스프레드시트에 비동기 전송
     const remotePromise = sendToGoogleSheets({
       action: 'createPost',
@@ -901,6 +900,50 @@ function createStore(initialState) {
     });
 
     return { success: true, remotePromise };
+  }
+
+  // --- 임시 저장 (Draft) 관련 API ---
+
+  function saveDraft({ title, category, tags, excerpt, content }) {
+    if (!title && !content) return null;
+    const cleanTags = typeof tags === 'string'
+      ? tags.split(',').map(t => t.trim().replace(/^#/, '')).filter(Boolean)
+      : (tags || []);
+
+    const draft = {
+      title: (title || '').trim(),
+      category: category || '개발',
+      tags: cleanTags,
+      excerpt: (excerpt || '').trim(),
+      content: (content || '').trim(),
+      updatedAt: new Date().toISOString()
+    };
+
+    try {
+      localStorage.setItem(STORAGE_KEYS.DRAFT, JSON.stringify(draft));
+      return draft;
+    } catch (e) {
+      console.warn('[DevBlog] 임시 저장 실패 (로컬 스토리지 한도):', e);
+      return null;
+    }
+  }
+
+  function getDraft() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEYS.DRAFT);
+      if (!raw) return null;
+      const draft = JSON.parse(raw);
+      if (draft && (draft.title || draft.content)) {
+        return draft;
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function clearDraft() {
+    localStorage.removeItem(STORAGE_KEYS.DRAFT);
   }
 
   // --- 댓글 (Comments) API ---
@@ -1042,7 +1085,7 @@ function createStore(initialState) {
     logout,
     updateProfile,
 
-    // Posts
+    // Posts & Draft
     getPosts,
     queryPosts,
     getPostById,
@@ -1052,6 +1095,9 @@ function createStore(initialState) {
     createPost,
     updatePost,
     deletePost,
+    saveDraft,
+    getDraft,
+    clearDraft,
 
     // Comments
     addComment,

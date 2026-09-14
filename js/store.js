@@ -10,7 +10,8 @@
     CURRENT_USER: 'devlog_current_user',
     POSTS: 'devlog_posts',
     INIT: 'devlog_initialized_v2',
-    GAS_URL: 'devlog_gas_api_url'
+    GAS_URL: 'devlog_gas_api_url',
+    DELETED_POSTS: 'devlog_deleted_posts'
   };
 
   // 연결된 구글 스프레드시트 설정 정보
@@ -284,10 +285,16 @@ function createStore(initialState) {
 
       const data = JSON.parse(text);
       if (data.success && Array.isArray(data.posts) && data.posts.length > 0) {
-        const localPosts = getPosts();
+        let deletedIds = [];
+        try {
+          deletedIds = JSON.parse(localStorage.getItem(STORAGE_KEYS.DELETED_POSTS) || '[]');
+        } catch (e) {}
+
+        const validRemotePosts = data.posts.filter(p => !deletedIds.includes(p.id));
+        const localPosts = getPosts().filter(p => !deletedIds.includes(p.id));
         const mergedMap = new Map();
         
-        data.posts.forEach(p => mergedMap.set(p.id, p));
+        validRemotePosts.forEach(p => mergedMap.set(p.id, p));
         localPosts.forEach(p => {
           if (!mergedMap.has(p.id)) mergedMap.set(p.id, p);
         });
@@ -780,6 +787,18 @@ function createStore(initialState) {
     post.updatedAt = new Date().toISOString();
 
     savePosts(posts);
+
+    // 구글 스프레드시트에 비동기 수정 요청
+    sendToGoogleSheets({
+      action: 'updatePost',
+      id: post.id,
+      title: post.title,
+      category: post.category,
+      tags: post.tags,
+      excerpt: post.excerpt,
+      content: post.content
+    });
+
     return { success: true, post };
   }
 
@@ -795,6 +814,22 @@ function createStore(initialState) {
 
     const filtered = posts.filter(p => p.id !== id);
     savePosts(filtered);
+
+    // 삭제된 ID 로컬 보관하여 원격 재동기화 시 부활 방지
+    try {
+      const deletedIds = JSON.parse(localStorage.getItem(STORAGE_KEYS.DELETED_POSTS) || '[]');
+      if (!deletedIds.includes(id)) {
+        deletedIds.push(id);
+        localStorage.setItem(STORAGE_KEYS.DELETED_POSTS, JSON.stringify(deletedIds));
+      }
+    } catch (e) {}
+
+    // 구글 스프레드시트에 비동기 삭제 요청
+    sendToGoogleSheets({
+      action: 'deletePost',
+      id: id
+    });
+
     return { success: true };
   }
 

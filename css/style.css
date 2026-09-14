@@ -255,6 +255,20 @@ body.menu-open {
   gap: 0.35rem;
 }
 
+.btn-danger {
+  background-color: rgba(239, 68, 68, 0.1);
+  color: var(--danger, #ef4444);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.btn-danger:hover {
+  background-color: var(--danger, #ef4444);
+  color: #ffffff;
+  border-color: var(--danger, #ef4444);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);
+}
+
 /* --------------------------------------------------------------------------
    Hero Section
    -------------------------------------------------------------------------- */

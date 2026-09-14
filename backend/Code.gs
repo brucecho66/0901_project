@@ -202,6 +202,32 @@ function processRequest(data) {
     return { success: true, id: newPostId };
   }
 
+  // [게시글] 게시글 수정 (Update)
+  if (action === 'updatePost') {
+    const postId = String(data.id || '');
+    if (!postId) {
+      return { success: false, message: '게시글 ID가 누락되었습니다.' };
+    }
+    const updated = updatePostRow(postsSheet, postId, data);
+    if (!updated) {
+      return { success: false, message: '수정할 게시글을 찾을 수 없습니다.' };
+    }
+    return { success: true, id: postId, message: '게시글이 성공적으로 수정되었습니다.' };
+  }
+
+  // [게시글] 게시글 삭제 (Delete)
+  if (action === 'deletePost') {
+    const postId = String(data.id || '');
+    if (!postId) {
+      return { success: false, message: '게시글 ID가 누락되었습니다.' };
+    }
+    const deleted = deletePostRow(postsSheet, commentsSheet, postId);
+    if (!deleted) {
+      return { success: false, message: '삭제할 게시글을 찾을 수 없습니다.' };
+    }
+    return { success: true, id: postId, message: '게시글과 관련 댓글이 삭제되었습니다.' };
+  }
+
   // [댓글] 댓글 등록
   if (action === 'addComment') {
     const newCommentId = 'c-' + Date.now();
@@ -383,3 +409,48 @@ function createJsonResponse(data) {
   return ContentService.createTextOutput(JSON.stringify(data))
     .setMimeType(ContentService.MimeType.JSON);
 }
+
+function updatePostRow(postsSheet, id, data) {
+  const values = postsSheet.getDataRange().getValues();
+  for (let i = 1; i < values.length; i++) {
+    if (String(values[i][0]) === String(id)) {
+      const rowIndex = i + 1;
+      // Col 2: title, Col 3: category, Col 4: tags, Col 5: excerpt, Col 6: content
+      if (data.title !== undefined) postsSheet.getRange(rowIndex, 2).setValue(data.title);
+      if (data.category !== undefined) postsSheet.getRange(rowIndex, 3).setValue(data.category);
+      if (data.tags !== undefined) {
+        const tagsStr = Array.isArray(data.tags) ? data.tags.join(', ') : data.tags;
+        postsSheet.getRange(rowIndex, 4).setValue(tagsStr);
+      }
+      if (data.excerpt !== undefined) postsSheet.getRange(rowIndex, 5).setValue(data.excerpt);
+      if (data.content !== undefined) postsSheet.getRange(rowIndex, 6).setValue(data.content);
+      return true;
+    }
+  }
+  return false;
+}
+
+function deletePostRow(postsSheet, commentsSheet, id) {
+  const values = postsSheet.getDataRange().getValues();
+  let found = false;
+  for (let i = 1; i < values.length; i++) {
+    if (String(values[i][0]) === String(id)) {
+      postsSheet.deleteRow(i + 1);
+      found = true;
+      break;
+    }
+  }
+
+  // 연결된 댓글도 함께 삭제
+  if (commentsSheet) {
+    const commentValues = commentsSheet.getDataRange().getValues();
+    for (let j = commentValues.length - 1; j >= 1; j--) {
+      if (String(commentValues[j][1]) === String(id)) {
+        commentsSheet.deleteRow(j + 1);
+      }
+    }
+  }
+
+  return found;
+}
+

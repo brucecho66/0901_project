@@ -121,6 +121,52 @@
   gap: 0.35rem;
 }
 
+.header-avatar-xs,
+.header-avatar-sm {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  background-color: var(--bg-card);
+}
+
+.header-profile-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  text-decoration: none;
+  transition: all var(--transition-fast);
+}
+
+.header-profile-btn:hover {
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+  background-color: var(--accent-soft);
+}
+
+.header-profile-btn.active {
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+  background-color: var(--accent-soft);
+  font-weight: 700;
+}
+
+.header-logout-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.header-logout-btn:hover {
+  border-color: var(--danger, #ef4444);
+  color: var(--danger, #ef4444);
+  background-color: rgba(239, 68, 68, 0.08);
+  transform: translateY(-2px);
+}
+
 /* --------------------------------------------------------------------------
    1. Blog Hero / Banner
    -------------------------------------------------------------------------- */
@@ -1513,6 +1559,44 @@
   .post-interaction-bar {
     flex-direction: column;
     gap: 1rem;
+  }
+
+  .nav-menu-mobile-auth {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    width: 100%;
+    padding-top: 1rem;
+    margin-top: 0.5rem;
+    border-top: 1px solid var(--border-color);
+  }
+
+  .nav-menu-mobile-auth .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+.nav-menu-mobile-auth {
+  display: none;
+}
+
+@media (max-width: 540px) {
+  .header-auth-buttons {
+    gap: 0.35rem;
+  }
+
+  .header-write-btn .btn-text,
+  .header-logout-btn .btn-text {
+    display: none;
+  }
+
+  .header-write-btn,
+  .header-logout-btn,
+  .header-profile-btn {
+    padding: 0.35rem 0.55rem;
+    min-height: 34px;
+    font-size: 0.75rem;
   }
 }
 

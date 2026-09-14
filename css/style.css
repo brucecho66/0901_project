@@ -227,6 +227,34 @@ body.menu-open {
   transform: translateY(-2px);
 }
 
+.btn-secondary {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+
+.btn-secondary:hover {
+  background-color: var(--accent-soft);
+  color: var(--accent-primary);
+  border-color: var(--accent-primary);
+  transform: translateY(-2px);
+}
+
+.btn-secondary.active {
+  background-color: var(--accent-soft);
+  color: var(--accent-primary);
+  border-color: var(--accent-primary);
+  font-weight: 700;
+}
+
+.btn-sm {
+  padding: 0.4rem 0.85rem;
+  min-height: 36px;
+  font-size: var(--font-size-xs, 0.8125rem);
+  font-weight: 600;
+  gap: 0.35rem;
+}
+
 /* --------------------------------------------------------------------------
    Hero Section
    -------------------------------------------------------------------------- */
@@ -1348,7 +1376,8 @@ body.menu-open {
     transition: transform var(--transition-normal), opacity var(--transition-normal);
   }
 
-  .nav-menu.open {
+  .nav-menu.open,
+  .nav-menu.is-open {
     transform: translateY(0);
     opacity: 1;
     pointer-events: auto;

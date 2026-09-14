@@ -195,10 +195,40 @@
           <span class="category-pill active" style="cursor: default;">${s}</span>
         `).join('');
 
-        // 비로그인 상태이면 편집 버튼 숨김 / 로그인 안내 표시
+        // 비로그인 상태이면 편집 버튼 숨김 및 로그인 안내 표시
         if (!currentUser) {
           toggleEditBtn.style.display = 'none';
-          document.querySelector('label[for="avatarUploadInput"]').style.display = 'none';
+          const avatarLabel = document.querySelector('label[for="avatarUploadInput"]');
+          if (avatarLabel) avatarLabel.style.display = 'none';
+
+          const actionGroup = document.getElementById('profileActionGroup');
+          if (actionGroup && !document.getElementById('guestLoginBtn')) {
+            const guestLoginBtn = document.createElement('a');
+            guestLoginBtn.id = 'guestLoginBtn';
+            guestLoginBtn.href = 'login.html?redirect=profile.html';
+            guestLoginBtn.className = 'btn btn-sm btn-primary';
+            guestLoginBtn.innerHTML = `
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>
+              <span>로그인하여 내 프로필 관리</span>
+            `;
+            actionGroup.prepend(guestLoginBtn);
+          }
+
+          const existingNotice = document.getElementById('guestNoticeBanner');
+          if (!existingNotice) {
+            const noticeBanner = document.createElement('div');
+            noticeBanner.id = 'guestNoticeBanner';
+            noticeBanner.style.cssText = 'background: var(--accent-soft); border: 1px solid var(--border-color); border-left: 4px solid var(--accent-primary); border-radius: var(--radius-md); padding: 0.85rem 1.15rem; margin-bottom: 1.5rem; font-size: 0.875rem; color: var(--text-primary); display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap;';
+            noticeBanner.innerHTML = `
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <span style="font-size: 1.15rem;">ℹ️</span>
+                <span>현재 <strong>블로그 대표 운영자</strong>의 프로필을 열람 중입니다. 로그인하시면 본인 계정의 프로필을 관리할 수 있습니다.</span>
+              </div>
+              <a href="login.html?redirect=profile.html" class="btn btn-sm btn-primary" style="padding: 0.35rem 0.8rem; font-size: 0.8rem;">로그인하기 &rarr;</a>
+            `;
+            const profileWrapper = document.querySelector('.profile-wrapper');
+            if (profileWrapper) profileWrapper.prepend(noticeBanner);
+          }
         }
       }
 

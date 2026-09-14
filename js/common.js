@@ -64,20 +64,39 @@
           <span class="gas-indicator ${isGasConnected ? 'connected' : ''}"></span>
           구글 시트 연동
         </button>
+
+        <div class="nav-menu-mobile-auth">
+          ${user ? `
+            <a href="profile.html" class="btn btn-sm btn-secondary ${activePage === 'profile' ? 'active' : ''}">
+              <img src="${user.avatar || 'assets/images/profile.svg'}" alt="${user.name}" class="header-avatar-xs">
+              <span>프로필 (${user.name})</span>
+            </a>
+            <button id="mobileLogoutBtn" class="btn btn-sm btn-secondary header-logout-btn">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+              <span>로그아웃</span>
+            </button>
+          ` : `
+            <a href="login.html" class="btn btn-sm btn-secondary ${activePage === 'login' ? 'active' : ''}">로그인</a>
+            <a href="signup.html" class="btn btn-sm btn-primary ${activePage === 'signup' ? 'active' : ''}">회원가입</a>
+          `}
+        </div>
       </nav>
     `;
 
     const userActionsHtml = user ? `
-      <div class="header-user-menu">
-        <a href="profile.html" class="user-profile-badge" title="마이 프로필 이동">
-          <img src="${user.avatar || 'assets/images/profile.svg'}" alt="${user.name}" class="header-avatar">
-          <span class="header-username">${user.name}</span>
-        </a>
-        <a href="post-write.html" class="btn btn-sm btn-primary header-write-btn">
+      <div class="header-auth-buttons header-user-menu">
+        <a href="post-write.html" class="btn btn-sm btn-primary header-write-btn ${activePage === 'write' ? 'active' : ''}" title="새 글 작성">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-          <span>글쓰기</span>
+          <span class="btn-text">글쓰기</span>
         </a>
-        <button id="headerLogoutBtn" class="btn btn-sm btn-secondary" title="로그아웃">로그아웃</button>
+        <a href="profile.html" class="btn btn-sm btn-secondary header-profile-btn ${activePage === 'profile' ? 'active' : ''}" id="headerProfileBtn" title="${user.name} 프로필">
+          <img src="${user.avatar || 'assets/images/profile.svg'}" alt="${user.name}" class="header-avatar-xs">
+          <span class="btn-text">프로필</span>
+        </a>
+        <button id="headerLogoutBtn" class="btn btn-sm btn-secondary header-logout-btn" title="로그아웃">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+          <span class="btn-text">로그아웃</span>
+        </button>
       </div>
     ` : `
       <div class="header-auth-buttons">
@@ -132,17 +151,27 @@
     `;
 
     // 이벤트 바인딩
+    function handleLogout() {
+      if (window.BlogStore) {
+        window.BlogStore.logout();
+        toast('안전하게 로그아웃되었습니다.', 'info');
+        setTimeout(() => {
+          if (window.location.pathname.endsWith('profile.html') || window.location.pathname.endsWith('post-write.html')) {
+            window.location.href = 'index.html';
+          } else {
+            window.location.reload();
+          }
+        }, 500);
+      }
+    }
+
     const logoutBtn = document.getElementById('headerLogoutBtn');
     if (logoutBtn) {
-      logoutBtn.addEventListener('click', () => {
-        if (window.BlogStore) {
-          window.BlogStore.logout();
-          toast('안전하게 로그아웃되었습니다.', 'info');
-          setTimeout(() => {
-            window.location.href = 'index.html';
-          }, 600);
-        }
-      });
+      logoutBtn.addEventListener('click', handleLogout);
+    }
+    const mobileLogoutBtn = document.getElementById('mobileLogoutBtn');
+    if (mobileLogoutBtn) {
+      mobileLogoutBtn.addEventListener('click', handleLogout);
     }
 
     const menuBtn = document.getElementById('menuToggleBtn');
@@ -150,6 +179,7 @@
     if (menuBtn && navMenu) {
       menuBtn.addEventListener('click', () => {
         const isOpen = navMenu.classList.toggle('is-open');
+        navMenu.classList.toggle('open', isOpen);
         menuBtn.setAttribute('aria-expanded', isOpen);
         document.body.classList.toggle('menu-open', isOpen);
       });

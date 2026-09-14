@@ -300,7 +300,11 @@
 
     // 진단 테스트 버튼 이벤트
     document.getElementById('testGasUrlBtn').addEventListener('click', async () => {
-      const url = urlInput.value.trim();
+      let url = urlInput.value.trim();
+      if (url.startsWith('AKfy') && !url.includes('/')) {
+        url = `https://script.google.com/macros/s/${url}/exec`;
+        urlInput.value = url;
+      }
       if (!url) {
         showTestResult('error', 'URL이 입력되지 않았습니다.', '스프레드시트에서 발급받은 웹 앱 URL을 먼저 입력해 주세요.');
         return;
@@ -335,7 +339,11 @@
 
     // 저장 & 동기화 버튼
     document.getElementById('saveGasUrlBtn').addEventListener('click', async () => {
-      const url = urlInput.value.trim();
+      let url = urlInput.value.trim();
+      if (url.startsWith('AKfy') && !url.includes('/')) {
+        url = `https://script.google.com/macros/s/${url}/exec`;
+        urlInput.value = url;
+      }
       if (!url) {
         window.BlogStore.setGasUrl('');
         toast('구글 시트 연동이 해제되었습니다. (로컬 모드 유지)', 'info');

@@ -18,7 +18,7 @@
   const GOOGLE_CONFIG = {
     SPREADSHEET_ID: '1dzsv8e3o-LaAnL2smrrzB_YrVqloz51AUcQTNE5Xelc',
     SPREADSHEET_URL: 'https://docs.google.com/spreadsheets/d/1dzsv8e3o-LaAnL2smrrzB_YrVqloz51AUcQTNE5Xelc/edit',
-    DEFAULT_GAS_URL: 'https://script.google.com/macros/s/AKfycbyASFOeJQL_fk2w1-QuqXo7NTRvSyS8q47Cmw3sdEmjb_aF0QCa2EWN9uirPSFd1h4UPw/exec'
+    DEFAULT_GAS_URL: 'https://script.google.com/macros/s/AKfycbxl6w2KnRohEM_LKY_yaDoMpYtR87OgV6_yfNK94fPZPLaDiIKomT7pVpkuizEyC_MbJw/exec'
   };
 
   // 초기 시드 데이터 (풍부한 기술 블로그 글)
@@ -252,13 +252,25 @@ function createStore(initialState) {
 
   // --- Google Sheets (Apps Script) 연동 API ---
 
+  function normalizeGasUrl(input) {
+    if (!input) return '';
+    let url = input.trim();
+    // 배포 ID만 입력된 경우 (예: AKfycbxl6w2KnRohEM_LKY_yaDoMpYtR87OgV6_yfNK94fPZPLaDiIKomT7pVpkuizEyC_MbJw)
+    if (url.startsWith('AKfy') && !url.includes('/')) {
+      url = `https://script.google.com/macros/s/${url}/exec`;
+    }
+    return url;
+  }
+
   function getGasUrl() {
-    return localStorage.getItem(STORAGE_KEYS.GAS_URL) || GOOGLE_CONFIG.DEFAULT_GAS_URL || '';
+    const stored = localStorage.getItem(STORAGE_KEYS.GAS_URL);
+    return normalizeGasUrl(stored) || GOOGLE_CONFIG.DEFAULT_GAS_URL || '';
   }
 
   function setGasUrl(url) {
-    if (url && url.trim()) {
-      localStorage.setItem(STORAGE_KEYS.GAS_URL, url.trim());
+    const cleanUrl = normalizeGasUrl(url);
+    if (cleanUrl) {
+      localStorage.setItem(STORAGE_KEYS.GAS_URL, cleanUrl);
       syncFromGoogleSheets();
       return true;
     } else {
@@ -341,7 +353,7 @@ function createStore(initialState) {
 
   // 실시간 연결 진단 함수
   async function testConnection(targetUrl) {
-    const url = (targetUrl || getGasUrl() || '').trim();
+    const url = normalizeGasUrl(targetUrl || getGasUrl() || '').trim();
     if (!url) {
       return { success: false, code: 'EMPTY', message: 'Google Apps Script URL이 입력되지 않았습니다.' };
     }
@@ -1014,9 +1026,11 @@ function createStore(initialState) {
   window.BlogStore = {
     // Config & Google Sheets
     GOOGLE_CONFIG,
+    normalizeGasUrl,
     getGasUrl,
     setGasUrl,
     syncFromGoogleSheets,
+    testConnection,
 
     // Auth
     getUsers,

@@ -428,6 +428,25 @@
   border-color: var(--accent-primary);
 }
 
+@keyframes cardPulseHighlight {
+  0% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.6);
+    border-color: var(--accent-primary);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
+    border-color: var(--accent-primary);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+  }
+}
+
+.post-card.card-highlight {
+  animation: cardPulseHighlight 1.8s ease-out 2;
+  border-color: var(--accent-primary) !important;
+}
+
 .post-card-thumb-wrapper {
   position: relative;
   width: 100%;

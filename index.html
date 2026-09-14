@@ -130,6 +130,39 @@
       const categoryPills = document.getElementById('categoryPills');
       const sortSelect = document.getElementById('sortSelect');
 
+      // URL 파라미터 확인 (글 작성/수정 후 메인으로 이동했을 때 피드백 제공)
+      const urlParams = new URLSearchParams(window.location.search);
+      const newPostId = urlParams.get('newPostId');
+      const updatedPostId = urlParams.get('updatedPostId');
+      let highlightPostId = newPostId || updatedPostId || null;
+
+      if (newPostId) {
+        const post = BlogStore.getPostById(newPostId);
+        const postTitle = post ? `"${post.title}"` : '새 게시글이';
+        BlogCommon.toast(`${postTitle} 메인 목록에 성공적으로 등록되었습니다! 🎉`, 'success');
+        window.history.replaceState({}, document.title, window.location.pathname);
+      } else if (updatedPostId) {
+        const post = BlogStore.getPostById(updatedPostId);
+        const postTitle = post ? `"${post.title}"` : '게시글이';
+        BlogCommon.toast(`${postTitle} 수정 내용이 메인에 반영되었습니다!`, 'success');
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+
+      // 블로그 히어로 운영자 프로필 동적 업데이트
+      function updateHeroAuthor() {
+        const currentUser = BlogStore.getCurrentUser();
+        const author = currentUser || (BlogStore.getUsers() && BlogStore.getUsers()[0]);
+        if (author) {
+          const heroName = document.getElementById('heroAuthorName');
+          const heroBio = document.getElementById('heroAuthorBio');
+          const heroAvatar = document.querySelector('.hero-author-avatar');
+          if (heroName) heroName.textContent = `${author.name} (${author.role === 'author' ? 'Author' : 'Member'})`;
+          if (heroBio && author.bio) heroBio.textContent = author.bio;
+          if (heroAvatar && author.avatar) heroAvatar.src = author.avatar;
+        }
+      }
+      updateHeroAuthor();
+
       // 3. 게시글 목록 렌더링 함수
       function renderPosts() {
         const posts = BlogStore.queryPosts({
@@ -142,7 +175,7 @@
           postsGrid.innerHTML = `
             <div class="posts-empty-state">
               <div class="empty-icon">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"></polyline><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"></circle><line x1="8" y1="12" x2="16" y2="12"></line></svg>
               </div>
               <h3 class="empty-title">일치하는 게시글이 없습니다</h3>
               <p class="empty-desc">다른 검색어를 입력하시거나 카테고리 필터를 변경해 보세요.</p>
@@ -168,9 +201,10 @@
           const readTime = BlogStore.calculateReadingTime(post.content);
           const commentsCount = post.comments ? post.comments.length : 0;
           const tagsHtml = (post.tags || []).map(t => `<span class="post-tag">#${t}</span>`).join('');
+          const isTargetHighlight = (highlightPostId && highlightPostId === post.id);
 
           return `
-            <a href="post-detail.html?id=${post.id}" class="post-card">
+            <a href="post-detail.html?id=${post.id}" class="post-card ${isTargetHighlight ? 'card-highlight' : ''}" id="card-${post.id}">
               <div class="post-card-thumb-wrapper">
                 <div class="post-card-thumb-pattern"></div>
                 <div class="post-card-thumb-icon">
@@ -213,7 +247,21 @@
             </a>
           `;
         }).join('');
+
+        if (highlightPostId) {
+          setTimeout(() => {
+            const targetEl = document.getElementById(`card-${highlightPostId}`);
+            if (targetEl) {
+              targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+          }, 200);
+        }
       }
+
+      // 구글 스프레드시트 동기화 시 목록 실시간 갱신 이벤트
+      window.addEventListener('devblog:posts-synced', () => {
+        renderPosts();
+      });
 
       // 4. 이벤트 바인딩 (검색)
       searchInput.addEventListener('input', (e) => {

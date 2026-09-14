@@ -1,12 +1,29 @@
 /**
  * ==========================================================================
- * Google Apps Script - Dev.Blog Backend API (회원가입, 로그인, 게시글, 댓글)
- * 스프레드시트 ID: 1dzsv8e3o-LaAnL2smrrzB_YrVqloz51AUcQTNE5Xelc
+ * Google Apps Script - Dev.Blog Backend API (회원가입, 로그인, 게시글, 댓글, 통계)
+ * 
+ * [스프레드시트 배포 가이드]
+ * 1. 구글 스프레드시트를 생성하거나 기존 시트를 엽니다.
+ * 2. 상단 메뉴 [확장 프로그램] ➔ [Apps Script] 클릭
+ * 3. 기존 코드를 모두 지우고 이 파일의 전체 코드를 붙여넣습니다.
+ * 4. 아래 SPREADSHEET_ID 변수에 본인의 스프레드시트 ID를 입력합니다.
+ *    (시트 URL: https://docs.google.com/spreadsheets/d/[스프레드시트ID]/edit)
+ * 5. 우측 상단 [배포] ➔ [새 배포] 클릭
+ *    - 유형 선택(톱니바퀴): "웹 앱"
+ *    - 설명: "DevBlog API v2"
+ *    - 다음 사용자로 실행: "나(내 계정)"
+ *    - 액세스 권한: "모든 사용자(Anyone)"  <-- ※ 필수! (로그인 없이 브라우저에서 접근 가능하도록)
+ * 6. 발급된 웹 앱 URL (https://script.google.com/macros/s/.../exec)을 복사하여
+ *    블로그 헤더의 [구글 시트 연동] 메뉴에 입력합니다.
  * ==========================================================================
  */
 
+// 스프레드시트 ID (스프레드시트 URL의 /d/ 와 /edit 사이의 문자열)
 const SPREADSHEET_ID = '1dzsv8e3o-LaAnL2smrrzB_YrVqloz51AUcQTNE5Xelc';
 
+/**
+ * 스프레드시트 객체 반환 (컨테이너 바인딩 및 독립형 스크립트 모두 지원)
+ */
 function getSpreadsheet() {
   let ss = null;
   try {
@@ -21,12 +38,14 @@ function getSpreadsheet() {
   return ss;
 }
 
-// --------------------------------------------------------------------------
-// 시트 및 기본 데이터 자동 생성 (users, posts, comments)
-// --------------------------------------------------------------------------
+/**
+ * 필요한 시트(users, posts, comments) 및 초기 데이터 자동 생성
+ */
 function ensureSheets() {
   const ss = getSpreadsheet();
-  if (!ss) throw new Error('스프레드시트를 열 수 없습니다. 스프레드시트 ID를 확인하세요.');
+  if (!ss) {
+    throw new Error('스프레드시트를 열 수 없습니다. SPREADSHEET_ID를 올바르게 입력했는지 확인하세요.');
+  }
 
   // 1. users (회원 시트)
   let usersSheet = ss.getSheetByName('users');
@@ -35,7 +54,7 @@ function ensureSheets() {
     usersSheet.appendRow([
       'id', 'email', 'password', 'name', 'bio', 'techStack', 'role', 'createdAt'
     ]);
-    // 기본 운영자 계정 자동 생성
+    // 기본 운영자 계정
     usersSheet.appendRow([
       'u_admin',
       'hong@example.com',
@@ -54,9 +73,9 @@ function ensureSheets() {
     postsSheet = ss.insertSheet('posts');
     postsSheet.appendRow([
       'id', 'title', 'category', 'tags', 'excerpt', 
-      'content', 'authorName', 'authorAvatar', 'views', 'likes', 'createdAt'
+      'content', 'authorName', 'authorAvatar', 'views', 'likes', 'createdAt', 'updatedAt'
     ]);
-    // 샘플 첫 게시글 1개 자동 생성
+    // 기본 샘플 첫 게시글
     postsSheet.appendRow([
       'post-1',
       '2026년 모던 프론트엔드 성능 최적화 실전 가이드',
@@ -68,6 +87,7 @@ function ensureSheets() {
       'assets/images/profile.svg',
       128,
       15,
+      new Date().toISOString(),
       new Date().toISOString()
     ]);
   }
@@ -77,16 +97,16 @@ function ensureSheets() {
   if (!commentsSheet) {
     commentsSheet = ss.insertSheet('comments');
     commentsSheet.appendRow([
-      'id', 'postId', 'authorName', 'content', 'createdAt'
+      'id', 'postId', 'authorName', 'authorAvatar', 'content', 'createdAt'
     ]);
   }
 
   return { ss, usersSheet, postsSheet, commentsSheet };
 }
 
-// --------------------------------------------------------------------------
-// 공통 요청 처리 디스패처 (GET & POST 모두 완벽 지원)
-// --------------------------------------------------------------------------
+/**
+ * 공통 요청 처리 디스패처 (GET & POST 모두 완벽 지원)
+ */
 function processRequest(data) {
   const { ss, usersSheet, postsSheet, commentsSheet } = ensureSheets();
   const action = (data && data.action) || 'getPosts';
@@ -101,18 +121,96 @@ function processRequest(data) {
     };
   }
 
-  // [게시글] 전체 목록 조회
+  // [게시글] 전체 목록 조회 (댓글 포함)
   if (action === 'getPosts') {
-    const posts = getAllPosts(postsSheet);
+    const posts = getAllPosts(postsSheet, commentsSheet);
     return { success: true, posts: posts, count: posts.length };
   }
 
   // [게시글] 단일 상세 및 댓글 조회
   if (action === 'getPost') {
     const postId = data.id;
-    const post = findPostById(postsSheet, postId);
-    const comments = getCommentsForPost(commentsSheet, postId);
-    return { success: true, post: post, comments: comments };
+    const post = findPostById(postsSheet, commentsSheet, postId);
+    if (!post) {
+      return { success: false, message: '게시글을 찾을 수 없습니다.' };
+    }
+    return { success: true, post: post };
+  }
+
+  // [게시글] 새 글 등록 (Create)
+  if (action === 'createPost') {
+    const newPostId = data.id || ('post-' + Date.now());
+    const now = new Date().toISOString();
+    const row = [
+      newPostId,
+      data.title || '제목 없음',
+      data.category || '개발',
+      Array.isArray(data.tags) ? data.tags.join(', ') : (data.tags || ''),
+      data.excerpt || '',
+      data.content || '',
+      data.authorName || '홍길동',
+      data.authorAvatar || 'assets/images/profile.svg',
+      Number(data.views || 0),
+      Number(data.likes || 0),
+      data.createdAt || now,
+      now
+    ];
+    postsSheet.appendRow(row);
+    return { success: true, id: newPostId };
+  }
+
+  // [게시글] 글 수정 (Update)
+  if (action === 'updatePost') {
+    const postId = data.id;
+    if (!postId) {
+      return { success: false, message: '게시글 ID가 누락되었습니다.' };
+    }
+    const updated = updatePostRow(postsSheet, postId, data);
+    return { success: updated, id: postId, message: updated ? '수정되었습니다.' : '해당 글을 찾을 수 없습니다.' };
+  }
+
+  // [게시글] 글 삭제 (Delete)
+  if (action === 'deletePost') {
+    const postId = data.id;
+    if (!postId) {
+      return { success: false, message: '게시글 ID가 누락되었습니다.' };
+    }
+    const deleted = deletePostRow(postsSheet, commentsSheet, postId);
+    return { success: deleted, id: postId, message: deleted ? '삭제되었습니다.' : '해당 글을 찾을 수 없습니다.' };
+  }
+
+  // [댓글] 댓글 등록
+  if (action === 'addComment') {
+    const newCommentId = data.id || ('c-' + Date.now());
+    const row = [
+      newCommentId,
+      data.postId,
+      data.authorName || '익명 방문자',
+      data.authorAvatar || 'assets/images/profile.svg',
+      data.content || '',
+      data.createdAt || new Date().toISOString()
+    ];
+    commentsSheet.appendRow(row);
+    return { success: true, commentId: newCommentId };
+  }
+
+  // [댓글] 댓글 삭제
+  if (action === 'deleteComment') {
+    const commentId = data.id || data.commentId;
+    const deleted = deleteCommentRow(commentsSheet, commentId);
+    return { success: deleted, commentId: commentId };
+  }
+
+  // [좋아요/공감] 공감 증가
+  if (action === 'likePost') {
+    const likes = incrementCell(postsSheet, data.postId, 10);
+    return { success: true, likes: likes };
+  }
+
+  // [조회수] 조회수 증가
+  if (action === 'viewPost') {
+    const views = incrementCell(postsSheet, data.postId, 9);
+    return { success: true, views: views };
   }
 
   // [회원] 이메일 중복 확인
@@ -157,7 +255,7 @@ function processRequest(data) {
       email: email,
       name: name,
       bio: bio,
-      techStack: typeof techStack === 'string' ? techStack.split(',').map(function(s) { return s.trim(); }) : [],
+      techStack: typeof techStack === 'string' ? techStack.split(',').map(function(s) { return s.trim(); }).filter(Boolean) : [],
       role: 'member',
       createdAt: now
     };
@@ -182,84 +280,22 @@ function processRequest(data) {
     return { success: true, user: user };
   }
 
-  // [게시글] 새 글 등록
-  if (action === 'createPost') {
-    const newPostId = data.id || ('post-' + Date.now());
-    const row = [
-      newPostId,
-      data.title || '제목 없음',
-      data.category || '개발',
-      Array.isArray(data.tags) ? data.tags.join(', ') : (data.tags || ''),
-      data.excerpt || '',
-      data.content || '',
-      data.authorName || '홍길동',
-      data.authorAvatar || 'assets/images/profile.svg',
-      Number(data.views || 0),
-      Number(data.likes || 0),
-      data.createdAt || new Date().toISOString()
-    ];
-    postsSheet.appendRow(row);
-    return { success: true, id: newPostId };
-  }
-
-  // [게시글] 게시글 수정 (Update)
-  if (action === 'updatePost') {
-    const postId = String(data.id || '');
-    if (!postId) {
-      return { success: false, message: '게시글 ID가 누락되었습니다.' };
+  // [회원] 프로필 정보 수정
+  if (action === 'updateProfile') {
+    const userId = data.userId || (data.user && data.user.id);
+    if (!userId) {
+      return { success: false, message: '회원 ID가 지정되지 않았습니다.' };
     }
-    const updated = updatePostRow(postsSheet, postId, data);
-    if (!updated) {
-      return { success: false, message: '수정할 게시글을 찾을 수 없습니다.' };
-    }
-    return { success: true, id: postId, message: '게시글이 성공적으로 수정되었습니다.' };
-  }
-
-  // [게시글] 게시글 삭제 (Delete)
-  if (action === 'deletePost') {
-    const postId = String(data.id || '');
-    if (!postId) {
-      return { success: false, message: '게시글 ID가 누락되었습니다.' };
-    }
-    const deleted = deletePostRow(postsSheet, commentsSheet, postId);
-    if (!deleted) {
-      return { success: false, message: '삭제할 게시글을 찾을 수 없습니다.' };
-    }
-    return { success: true, id: postId, message: '게시글과 관련 댓글이 삭제되었습니다.' };
-  }
-
-  // [댓글] 댓글 등록
-  if (action === 'addComment') {
-    const newCommentId = 'c-' + Date.now();
-    const row = [
-      newCommentId,
-      data.postId,
-      data.authorName || '익명 방문자',
-      data.content || '',
-      new Date().toISOString()
-    ];
-    commentsSheet.appendRow(row);
-    return { success: true, commentId: newCommentId };
-  }
-
-  // [좋아요] 좋아요 증가
-  if (action === 'likePost') {
-    const likes = incrementCell(postsSheet, data.postId, 10);
-    return { success: true, likes: likes };
-  }
-
-  // [조회수] 조회수 증가
-  if (action === 'viewPost') {
-    const views = incrementCell(postsSheet, data.postId, 9);
-    return { success: true, views: views };
+    const updated = updateUserProfile(usersSheet, userId, data);
+    return { success: updated, message: updated ? '프로필이 업데이트되었습니다.' : '회원을 찾을 수 없습니다.' };
   }
 
   return { success: false, message: '알 수 없는 요청 액션입니다: ' + action };
 }
 
-// --------------------------------------------------------------------------
-// 1. GET 요청 핸들러 (브라우저 주소창, JSON 조회, GET 파라미터 호출)
-// --------------------------------------------------------------------------
+/**
+ * GET 요청 핸들러 (조회, 핑, 브라우저 다이렉트 테스트)
+ */
 function doGet(e) {
   try {
     const data = (e && e.parameter) ? e.parameter : {};
@@ -270,9 +306,9 @@ function doGet(e) {
   }
 }
 
-// --------------------------------------------------------------------------
-// 2. POST 요청 핸들러 (회원가입, 로그인, 글쓰기, 댓글, 좋아요)
-// --------------------------------------------------------------------------
+/**
+ * POST 요청 핸들러 (CORS 및 JSON/Form 전송 모두 지원)
+ */
 function doPost(e) {
   try {
     let data = {};
@@ -293,24 +329,10 @@ function doPost(e) {
   }
 }
 
-// --------------------------------------------------------------------------
-// 직접 테스트용 함수 (Apps Script 상단에서 [testApi] 선택 후 [▷ 실행] 클릭)
-// --------------------------------------------------------------------------
-function testApi() {
-  Logger.log('1. ensureSheets 실행 중...');
-  const sheets = ensureSheets();
-  Logger.log('2. 시트 확인 완료: ' + sheets.ss.getName());
+// ==========================================================================
+// 보조 헬퍼 함수들 (데이터베이스 쿼리 및 변환)
+// ==========================================================================
 
-  Logger.log('3. doGet 테스트 실행...');
-  const res = doGet({ parameter: { action: 'getPosts' } });
-  Logger.log('doGet 결과: ' + res.getContent());
-
-  Logger.log('🎉 모든 테스트 통과! 이제 [배포] > [새 배포]를 진행하세요.');
-}
-
-// --------------------------------------------------------------------------
-// 보조 함수들
-// --------------------------------------------------------------------------
 function checkUserEmailExists(usersSheet, email) {
   const data = usersSheet.getDataRange().getValues();
   for (let i = 1; i < data.length; i++) {
@@ -334,7 +356,7 @@ function authenticateUser(usersSheet, email, password) {
         email: row[1],
         name: row[3],
         bio: row[4],
-        techStack: typeof row[5] === 'string' ? row[5].split(',').map(s => s.trim()) : [],
+        techStack: typeof row[5] === 'string' ? row[5].split(',').map(s => s.trim()).filter(Boolean) : [],
         role: row[6] || 'member',
         createdAt: row[7] ? new Date(row[7]).toISOString() : new Date().toISOString()
       };
@@ -343,54 +365,144 @@ function authenticateUser(usersSheet, email, password) {
   return null;
 }
 
-function getAllPosts(postsSheet) {
+function updateUserProfile(usersSheet, userId, data) {
+  const values = usersSheet.getDataRange().getValues();
+  for (let i = 1; i < values.length; i++) {
+    if (String(values[i][0]) === String(userId)) {
+      if (data.name) usersSheet.getRange(i + 1, 4).setValue(data.name);
+      if (data.bio !== undefined) usersSheet.getRange(i + 1, 5).setValue(data.bio);
+      if (data.techStack !== undefined) {
+        const stackStr = Array.isArray(data.techStack) ? data.techStack.join(', ') : data.techStack;
+        usersSheet.getRange(i + 1, 6).setValue(stackStr);
+      }
+      return true;
+    }
+  }
+  return false;
+}
+
+function getAllPosts(postsSheet, commentsSheet) {
   const data = postsSheet.getDataRange().getValues();
   if (data.length <= 1) return [];
+
+  const allComments = commentsSheet ? getAllComments(commentsSheet) : [];
+  const commentsByPostId = {};
+  allComments.forEach(c => {
+    if (!commentsByPostId[c.postId]) commentsByPostId[c.postId] = [];
+    commentsByPostId[c.postId].push(c);
+  });
 
   const posts = [];
   for (let i = data.length - 1; i >= 1; i--) {
     const row = data[i];
     if (!row[0]) continue;
+
+    const postId = String(row[0]);
     posts.push({
-      id: String(row[0]),
+      id: postId,
       title: String(row[1] || ''),
       category: String(row[2] || '개발'),
-      tags: typeof row[3] === 'string' ? row[3].split(',').map(s => s.trim()).filter(Boolean) : [],
+      tags: typeof row[3] === 'string' ? row[3].split(',').map(s => s.trim()).filter(Boolean) : (Array.isArray(row[3]) ? row[3] : []),
       excerpt: String(row[4] || ''),
       content: String(row[5] || ''),
       authorName: String(row[6] || '홍길동'),
       authorAvatar: String(row[7] || 'assets/images/profile.svg'),
       views: Number(row[8] || 0),
       likes: Number(row[9] || 0),
-      createdAt: row[10] ? new Date(row[10]).toISOString() : new Date().toISOString()
+      comments: commentsByPostId[postId] || [],
+      createdAt: row[10] ? new Date(row[10]).toISOString() : new Date().toISOString(),
+      updatedAt: row[11] ? new Date(row[11]).toISOString() : (row[10] ? new Date(row[10]).toISOString() : new Date().toISOString())
     });
   }
   return posts;
 }
 
-function findPostById(postsSheet, id) {
-  const posts = getAllPosts(postsSheet);
+function findPostById(postsSheet, commentsSheet, id) {
+  const posts = getAllPosts(postsSheet, commentsSheet);
   return posts.find(p => p.id === String(id)) || null;
 }
 
-function getCommentsForPost(commentsSheet, postId) {
+function updatePostRow(postsSheet, postId, data) {
+  const values = postsSheet.getDataRange().getValues();
+  for (let i = 1; i < values.length; i++) {
+    if (String(values[i][0]) === String(postId)) {
+      const rowIdx = i + 1;
+      if (data.title !== undefined) postsSheet.getRange(rowIdx, 2).setValue(data.title);
+      if (data.category !== undefined) postsSheet.getRange(rowIdx, 3).setValue(data.category);
+      if (data.tags !== undefined) {
+        const tagStr = Array.isArray(data.tags) ? data.tags.join(', ') : data.tags;
+        postsSheet.getRange(rowIdx, 4).setValue(tagStr);
+      }
+      if (data.excerpt !== undefined) postsSheet.getRange(rowIdx, 5).setValue(data.excerpt);
+      if (data.content !== undefined) postsSheet.getRange(rowIdx, 6).setValue(data.content);
+      
+      // updatedAt
+      const now = new Date().toISOString();
+      postsSheet.getRange(rowIdx, 12).setValue(now);
+      return true;
+    }
+  }
+  return false;
+}
+
+function deletePostRow(postsSheet, commentsSheet, postId) {
+  const values = postsSheet.getDataRange().getValues();
+  let deleted = false;
+  for (let i = 1; i < values.length; i++) {
+    if (String(values[i][0]) === String(postId)) {
+      postsSheet.deleteRow(i + 1);
+      deleted = true;
+      break;
+    }
+  }
+
+  // 연결된 댓글도 일괄 삭제
+  if (commentsSheet) {
+    const cValues = commentsSheet.getDataRange().getValues();
+    for (let i = cValues.length - 1; i >= 1; i--) {
+      if (String(cValues[i][1]) === String(postId)) {
+        commentsSheet.deleteRow(i + 1);
+      }
+    }
+  }
+
+  return deleted;
+}
+
+function getAllComments(commentsSheet) {
   const data = commentsSheet.getDataRange().getValues();
   if (data.length <= 1) return [];
 
   const comments = [];
   for (let i = 1; i < data.length; i++) {
     const row = data[i];
-    if (String(row[1]) === String(postId)) {
-      comments.push({
-        id: String(row[0]),
-        postId: String(row[1]),
-        authorName: String(row[2] || '익명'),
-        content: String(row[3] || ''),
-        createdAt: row[4] ? new Date(row[4]).toISOString() : new Date().toISOString()
-      });
-    }
+    if (!row[0]) continue;
+    comments.push({
+      id: String(row[0]),
+      postId: String(row[1]),
+      authorName: String(row[2] || '익명'),
+      authorAvatar: String(row[3] || 'assets/images/profile.svg'),
+      content: String(row[4] || ''),
+      createdAt: row[5] ? new Date(row[5]).toISOString() : new Date().toISOString()
+    });
   }
   return comments;
+}
+
+function getCommentsForPost(commentsSheet, postId) {
+  const all = getAllComments(commentsSheet);
+  return all.filter(c => c.postId === String(postId));
+}
+
+function deleteCommentRow(commentsSheet, commentId) {
+  const values = commentsSheet.getDataRange().getValues();
+  for (let i = 1; i < values.length; i++) {
+    if (String(values[i][0]) === String(commentId)) {
+      commentsSheet.deleteRow(i + 1);
+      return true;
+    }
+  }
+  return false;
 }
 
 function incrementCell(sheet, id, columnIndex) {
@@ -410,47 +522,22 @@ function createJsonResponse(data) {
     .setMimeType(ContentService.MimeType.JSON);
 }
 
-function updatePostRow(postsSheet, id, data) {
-  const values = postsSheet.getDataRange().getValues();
-  for (let i = 1; i < values.length; i++) {
-    if (String(values[i][0]) === String(id)) {
-      const rowIndex = i + 1;
-      // Col 2: title, Col 3: category, Col 4: tags, Col 5: excerpt, Col 6: content
-      if (data.title !== undefined) postsSheet.getRange(rowIndex, 2).setValue(data.title);
-      if (data.category !== undefined) postsSheet.getRange(rowIndex, 3).setValue(data.category);
-      if (data.tags !== undefined) {
-        const tagsStr = Array.isArray(data.tags) ? data.tags.join(', ') : data.tags;
-        postsSheet.getRange(rowIndex, 4).setValue(tagsStr);
-      }
-      if (data.excerpt !== undefined) postsSheet.getRange(rowIndex, 5).setValue(data.excerpt);
-      if (data.content !== undefined) postsSheet.getRange(rowIndex, 6).setValue(data.content);
-      return true;
-    }
-  }
-  return false;
+// ==========================================================================
+// Apps Script IDE 콘솔 직접 테스트용 함수
+// Apps Script 상단에서 [testApi] 함수를 선택하고 [▷ 실행]을 클릭하여 테스트
+// ==========================================================================
+function testApi() {
+  Logger.log('1. ensureSheets 실행 및 시트 확인 중...');
+  const sheets = ensureSheets();
+  Logger.log('✔ 스프레드시트 이름: ' + sheets.ss.getName());
+
+  Logger.log('2. ping 테스트 실행...');
+  const pingRes = processRequest({ action: 'ping' });
+  Logger.log('✔ ping 결과: ' + JSON.stringify(pingRes));
+
+  Logger.log('3. getPosts 테스트 실행...');
+  const postsRes = processRequest({ action: 'getPosts' });
+  Logger.log('✔ 등록된 글 개수: ' + postsRes.count);
+
+  Logger.log('🎉 모든 테스트 정상 통과! 이제 [배포] ➔ [새 배포] ➔ [웹 앱]으로 배포하세요.');
 }
-
-function deletePostRow(postsSheet, commentsSheet, id) {
-  const values = postsSheet.getDataRange().getValues();
-  let found = false;
-  for (let i = 1; i < values.length; i++) {
-    if (String(values[i][0]) === String(id)) {
-      postsSheet.deleteRow(i + 1);
-      found = true;
-      break;
-    }
-  }
-
-  // 연결된 댓글도 함께 삭제
-  if (commentsSheet) {
-    const commentValues = commentsSheet.getDataRange().getValues();
-    for (let j = commentValues.length - 1; j >= 1; j--) {
-      if (String(commentValues[j][1]) === String(id)) {
-        commentsSheet.deleteRow(j + 1);
-      }
-    }
-  }
-
-  return found;
-}
-

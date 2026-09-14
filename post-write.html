@@ -249,7 +249,10 @@
 
       // 5. 폼 제출 처리
       const form = document.getElementById('postEditorForm');
-      form.addEventListener('submit', (e) => {
+      const submitBtn = document.getElementById('submitBtn');
+      const submitBtnText = document.getElementById('submitBtnText');
+
+      form.addEventListener('submit', async (e) => {
         e.preventDefault();
 
         const title = titleInput.value.trim();
@@ -263,39 +266,84 @@
           return;
         }
 
-        if (isEditMode) {
-          const res = BlogStore.updatePost(targetPost.id, {
-            title,
-            category,
-            tags,
-            excerpt,
-            content
-          });
+        // 로딩 버튼 상태 설정
+        if (submitBtn) {
+          submitBtn.disabled = true;
+          submitBtn.innerHTML = `
+            <svg class="spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle><path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"></path></svg>
+            <span>${isEditMode ? '수정 내용 저장 중...' : '게시글 저장 중...'}</span>
+          `;
+        }
 
-          if (res.success) {
-            BlogCommon.toast('게시글이 성공적으로 수정되었습니다!', 'success');
-            setTimeout(() => {
+        try {
+          if (isEditMode) {
+            const res = BlogStore.updatePost(targetPost.id, {
+              title,
+              category,
+              tags,
+              excerpt,
+              content
+            });
+
+            if (res.success) {
+              BlogCommon.toast('게시글이 성공적으로 수정되었습니다!', 'success');
+              // 원격 전송 완료를 안전하게 대기 (최대 1.2초)
+              if (res.remotePromise) {
+                await Promise.race([
+                  res.remotePromise,
+                  new Promise(resolve => setTimeout(resolve, 1200))
+                ]);
+              }
               window.location.href = `index.html?updatedPostId=${targetPost.id}`;
-            }, 500);
+            } else {
+              BlogCommon.toast(res.message || '게시글 수정 실패', 'error');
+              if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = `
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  <span>수정 완료</span>
+                `;
+              }
+            }
           } else {
-            BlogCommon.toast(res.message || '게시글 수정 실패', 'error');
-          }
-        } else {
-          const res = BlogStore.createPost({
-            title,
-            category,
-            tags,
-            excerpt,
-            content
-          });
+            const res = BlogStore.createPost({
+              title,
+              category,
+              tags,
+              excerpt,
+              content
+            });
 
-          if (res.success) {
-            BlogCommon.toast('새 게시글이 성공적으로 등록되었습니다!', 'success');
-            setTimeout(() => {
+            if (res.success) {
+              BlogCommon.toast('새 게시글이 성공적으로 등록되었습니다!', 'success');
+              // 원격 전송 완료를 안전하게 대기 (최대 1.2초)
+              if (res.remotePromise) {
+                await Promise.race([
+                  res.remotePromise,
+                  new Promise(resolve => setTimeout(resolve, 1200))
+                ]);
+              }
               window.location.href = `index.html?newPostId=${res.post.id}`;
-            }, 500);
-          } else {
-            BlogCommon.toast(res.message || '게시글 등록 실패', 'error');
+            } else {
+              BlogCommon.toast(res.message || '게시글 등록 실패', 'error');
+              if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = `
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  <span>게시글 발행하기</span>
+                `;
+              }
+            }
+          }
+        } catch (err) {
+          console.error(err);
+          BlogCommon.toast('게시글 저장 처리 중 오류가 발생했습니다.', 'error');
+          if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = `
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              <span>${isEditMode ? '수정 완료' : '게시글 발행하기'}</span>
+            `;
           }
         }
       });

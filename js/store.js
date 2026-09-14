@@ -281,10 +281,10 @@ function createStore(initialState) {
       if (!response.ok) return false;
 
       const text = await response.text();
-      if (text.startsWith('<') || text.includes('ServiceLogin')) return false;
+      if (text.startsWith('<') || text.includes('ServiceLogin') || text.includes('doGet')) return false;
 
       const data = JSON.parse(text);
-      if (data.success && Array.isArray(data.posts) && data.posts.length > 0) {
+      if (data.success && Array.isArray(data.posts)) {
         let deletedIds = [];
         try {
           deletedIds = JSON.parse(localStorage.getItem(STORAGE_KEYS.DELETED_POSTS) || '[]');
@@ -292,16 +292,45 @@ function createStore(initialState) {
 
         const validRemotePosts = data.posts.filter(p => !deletedIds.includes(p.id));
         const localPosts = getPosts().filter(p => !deletedIds.includes(p.id));
-        const mergedMap = new Map();
-        
-        validRemotePosts.forEach(p => mergedMap.set(p.id, p));
-        localPosts.forEach(p => {
-          if (!mergedMap.has(p.id)) mergedMap.set(p.id, p);
+        const postMap = new Map();
+
+        // 1. 로컬에 저장된 게시글 먼저 등록
+        localPosts.forEach(p => postMap.set(p.id, p));
+
+        // 2. 원격 데이터 머지: 최신 수정본 유지 및 조회수/좋아요 통합
+        validRemotePosts.forEach(remote => {
+          if (!postMap.has(remote.id)) {
+            postMap.set(remote.id, remote);
+          } else {
+            const local = postMap.get(remote.id);
+            const localTime = new Date(local.updatedAt || local.createdAt || 0).getTime();
+            const remoteTime = new Date(remote.updatedAt || remote.createdAt || 0).getTime();
+
+            if (remoteTime >= localTime) {
+              postMap.set(remote.id, {
+                ...remote,
+                likedUsers: local.likedUsers || remote.likedUsers || []
+              });
+            } else {
+              postMap.set(remote.id, {
+                ...local,
+                views: Math.max(local.views || 0, remote.views || 0),
+                likes: Math.max(local.likes || 0, remote.likes || 0)
+              });
+            }
+          }
         });
 
-        const mergedList = Array.from(mergedMap.values());
+        // 3. 최신 작성일 기준 내림차순 정렬 (새 글이 항상 목록 최상단에 노출)
+        const mergedList = Array.from(postMap.values()).sort((a, b) => {
+          return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+        });
+
         savePosts(mergedList);
         console.log('[DevBlog] 구글 스프레드시트와 실시간 동기화 완료! 총 ' + mergedList.length + '개 글');
+
+        // 4. 메인 화면 등 UI에 실시간 갱신 이벤트 통보
+        window.dispatchEvent(new CustomEvent('devblog:posts-synced', { detail: { posts: mergedList } }));
         return true;
       }
     } catch (err) {
@@ -398,23 +427,52 @@ function createStore(initialState) {
     }
   }
 
-  // 원격 구글 시트로 POST 비동기 전송 헬퍼
-  function sendToGoogleSheets(payload) {
+  // 원격 구글 시트로 POST 비동기 전송 헬퍼 (keepalive 지원 및 안정적 전달)
+  async function sendToGoogleSheets(payload) {
     const gasUrl = getGasUrl();
-    if (!gasUrl) return;
+    if (!gasUrl) {
+      console.warn('[DevBlog] 구글 시트 연동 URL이 설정되지 않았습니다.');
+      return { success: false, message: 'Google Apps Script URL 미설정' };
+    }
 
     try {
-      // text/plain 형식으로 전송해야 브라우저의 불필요한 CORS preflight(OPTIONS) 차단을 우회할 수 있습니다.
-      fetch(gasUrl, {
+      // text/plain 형식으로 전송하여 불필요한 CORS preflight 차단 우회
+      // keepalive: true 를 주어 페이지 이동(unload) 중에도 브라우저가 전송을 취소하지 않고 완료하도록 보장
+      const response = await fetch(gasUrl, {
         method: 'POST',
         mode: 'cors',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify(payload)
-      }).catch(err => {
-        console.warn('[DevBlog] 구글 시트 백엔드 전송 경고:', err);
+        body: JSON.stringify(payload),
+        keepalive: true,
+        redirect: 'follow'
       });
-    } catch (e) {
-      console.error(e);
+
+      const text = await response.text();
+      let data = null;
+      try {
+        data = JSON.parse(text);
+      } catch (parseErr) {
+        if (text.includes('doPost') || text.includes('doGet')) {
+          console.error('[DevBlog] Apps Script 배포 오류: doGet/doPost 함수를 찾을 수 없습니다. Apps Script에서 [새 배포]를 진행해 주세요.');
+        }
+      }
+
+      if (data && data.success) {
+        console.log('[DevBlog] 구글 시트 백엔드 전송 성공:', payload.action);
+        return { success: true, data };
+      } else {
+        return { success: false, data, raw: text };
+      }
+    } catch (err) {
+      console.warn('[DevBlog] 구글 시트 백엔드 전송 경고:', err);
+      // 브라우저 닫힘/이동 시 대비한 sendBeacon 백업
+      try {
+        if (navigator.sendBeacon) {
+          const blob = new Blob([JSON.stringify(payload)], { type: 'text/plain;charset=utf-8' });
+          navigator.sendBeacon(gasUrl, blob);
+        }
+      } catch (beaconErr) {}
+      return { success: false, error: err };
     }
   }
 
@@ -748,7 +806,7 @@ function createStore(initialState) {
     savePosts(posts);
 
     // 구글 스프레드시트에 비동기 전송
-    sendToGoogleSheets({
+    const remotePromise = sendToGoogleSheets({
       action: 'createPost',
       id: newPost.id,
       title: newPost.title,
@@ -761,7 +819,7 @@ function createStore(initialState) {
       createdAt: newPost.createdAt
     });
 
-    return { success: true, post: newPost };
+    return { success: true, post: newPost, remotePromise };
   }
 
   function updatePost(id, { title, category, tags, content, excerpt, thumbnail }) {
@@ -789,7 +847,7 @@ function createStore(initialState) {
     savePosts(posts);
 
     // 구글 스프레드시트에 비동기 수정 요청
-    sendToGoogleSheets({
+    const remotePromise = sendToGoogleSheets({
       action: 'updatePost',
       id: post.id,
       title: post.title,
@@ -799,7 +857,7 @@ function createStore(initialState) {
       content: post.content
     });
 
-    return { success: true, post };
+    return { success: true, post, remotePromise };
   }
 
   function deletePost(id) {
@@ -825,12 +883,12 @@ function createStore(initialState) {
     } catch (e) {}
 
     // 구글 스프레드시트에 비동기 삭제 요청
-    sendToGoogleSheets({
+    const remotePromise = sendToGoogleSheets({
       action: 'deletePost',
       id: id
     });
 
-    return { success: true };
+    return { success: true, remotePromise };
   }
 
   // --- 댓글 (Comments) API ---

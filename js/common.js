@@ -109,11 +109,9 @@
       <header class="header">
         <div class="container nav-container">
           <a href="index.html" class="logo" aria-label="블로그 홈으로 이동">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
-              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
-            </svg>
-            Dev<span>.Blog</span>
+            <span class="naver-blog-icon">N</span>
+            <span class="logo-text">Dev<span class="logo-accent">.Blog</span></span>
+            <span class="naver-brand-badge">블로그</span>
           </a>
 
           ${navLinksHtml}
@@ -286,9 +284,9 @@
         textColor = '#991b1b';
         icon = '⚠️';
       } else if (status === 'loading') {
-        bgColor = 'rgba(59, 130, 246, 0.08)';
-        borderColor = '#3b82f6';
-        textColor = '#1e40af';
+        bgColor = 'rgba(3, 199, 90, 0.08)';
+        borderColor = '#03c75a';
+        textColor = '#007032';
         icon = '⏳';
       }
 

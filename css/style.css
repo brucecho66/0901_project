@@ -205,13 +205,13 @@ body.menu-open {
 .btn-primary {
   background: var(--accent-gradient);
   color: #ffffff;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+  box-shadow: 0 4px 12px rgba(3, 199, 90, 0.28);
 }
 
 .btn-primary:hover {
   opacity: 0.93;
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.35);
+  box-shadow: 0 6px 16px rgba(3, 199, 90, 0.38);
 }
 
 .btn-outline {

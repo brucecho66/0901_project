@@ -91,7 +91,7 @@
             </div>
             <div class="profile-stat-box">
               <div class="profile-stat-val" id="statLikesCount">0</div>
-              <div class="profile-stat-lbl">받은 좋아요</div>
+              <div class="profile-stat-lbl">받은 공감</div>
             </div>
           </div>
         </div>
@@ -289,7 +289,7 @@
                 <div class="post-card-tags">${tagsHtml}</div>
                 
                 <div class="post-card-footer" style="margin-top: auto; padding-top: 0.85rem; border-top: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
-                  <span style="font-size: 0.75rem; color: var(--text-muted);">조회 ${post.views || 0} · 좋아요 ${post.likes || 0} · 댓글 ${commentsCount}</span>
+                  <span style="font-size: 0.75rem; color: var(--text-muted);">조회 ${post.views || 0} · <span style="color: #f43f5e; font-weight: 600;">♥ 공감 ${post.likes || 0}</span> · <span style="color: var(--accent-primary); font-weight: 600;">💬 댓글 ${commentsCount}</span></span>
                   <div class="post-card-actions">
                     <a href="post-detail.html?id=${post.id}" class="btn btn-sm btn-outline" style="padding: 0.25rem 0.65rem; min-height: 28px; font-size: 0.75rem;">보기</a>
                     ${isOwner ? `

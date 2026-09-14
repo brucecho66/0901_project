@@ -177,15 +177,15 @@ function createStore(initialState) {
 \`\`\`css
 :root {
   --bg-primary: #ffffff;
-  --text-primary: #1f2937;
-  --accent-color: #3b82f6;
-  --radius-md: 12px;
+  --text-primary: #202020;
+  --accent-color: #03c75a;
+  --radius-md: 8px;
 }
 
 [data-theme="dark"] {
-  --bg-primary: #0f172a;
-  --text-primary: #f8fafc;
-  --accent-color: #60a5fa;
+  --bg-primary: #121416;
+  --text-primary: #f2f4f6;
+  --accent-color: #03c75a;
 }
 \`\`\`
 

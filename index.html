@@ -29,23 +29,34 @@
         <div class="blog-hero-inner">
           <div class="blog-hero-content">
             <div class="blog-hero-badge">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-              <span>Personal Tech Blog</span>
+              <span class="naver-badge-icon">N</span>
+              <span>NAVER BLOG · 기술 블로그</span>
             </div>
             <h1 class="blog-hero-title">생각과 코드를 기록하는<br><span>기술 아카이브</span></h1>
             <p class="blog-hero-desc">
-              웹 프론트엔드 최적화, 모던 JavaScript 아키텍처, 디자인 시스템 구축 경험과 배움의 과정을 공유합니다.
+              웹 프론트엔드 최적화, 모던 JavaScript 아키텍처, 디자인 시스템 구축 경험과 배움의 과정을 기록합니다.
             </p>
           </div>
 
           <!-- 블로그 운영자 미니 프로필 카드 -->
           <div class="blog-hero-author-card" id="heroAuthorCard">
-            <img src="assets/images/profile.svg" alt="홍길동" class="hero-author-avatar">
+            <div class="hero-author-avatar-wrap">
+              <img src="assets/images/profile.svg" alt="홍길동" class="hero-author-avatar">
+              <span class="author-online-badge" title="활동 중"></span>
+            </div>
             <div class="hero-author-info">
-              <h4 id="heroAuthorName">홍길동 (DevLog)</h4>
+              <div class="hero-author-name-row">
+                <h4 id="heroAuthorName">홍길동 (DevLog)</h4>
+                <span class="hero-author-badge">공식</span>
+              </div>
               <p id="heroAuthorBio">문제를 집요하게 해결하는 풀스택 웹 개발자</p>
+              <div class="hero-author-stats">
+                <span>이웃 <strong id="heroNeighborCount">158</strong></span>
+                <span class="stat-divider">·</span>
+                <span>전체글 <strong id="heroTotalPostsCount">12</strong></span>
+              </div>
               <div class="hero-author-links">
-                <a href="profile.html" class="hero-author-btn">프로필 보기</a>
+                <a href="profile.html" class="hero-author-btn hero-author-btn-primary">+ 이웃추가 / 프로필</a>
                 <a href="https://github.com/brucecho66" target="_blank" rel="noopener noreferrer" class="hero-author-btn">GitHub</a>
               </div>
             </div>
@@ -69,11 +80,11 @@
         <!-- 카테고리 필터 & 정렬 옵션 -->
         <div class="blog-filter-row">
           <div class="category-pills" id="categoryPills">
-            <button class="category-pill active" data-category="all">전체보기</button>
-            <button class="category-pill" data-category="프론트엔드">프론트엔드</button>
-            <button class="category-pill" data-category="개발">개발</button>
-            <button class="category-pill" data-category="UI/UX">UI/UX</button>
-            <button class="category-pill" data-category="회고">회고</button>
+            <button class="category-pill active" data-category="all">전체보기 <span class="pill-count" id="countAll"></span></button>
+            <button class="category-pill" data-category="프론트엔드">프론트엔드 <span class="pill-count" id="countFront"></span></button>
+            <button class="category-pill" data-category="개발">개발 <span class="pill-count" id="countDev"></span></button>
+            <button class="category-pill" data-category="UI/UX">UI/UX <span class="pill-count" id="countUi"></span></button>
+            <button class="category-pill" data-category="회고">회고 <span class="pill-count" id="countRetro"></span></button>
           </div>
 
           <div style="display: flex; align-items: center; gap: 0.6rem;">
@@ -148,7 +159,7 @@
         window.history.replaceState({}, document.title, window.location.pathname);
       }
 
-      // 블로그 히어로 운영자 프로필 동적 업데이트
+      // 블로그 히어로 운영자 프로필 & 통계 동적 업데이트
       function updateHeroAuthor() {
         const currentUser = BlogStore.getCurrentUser();
         const author = currentUser || (BlogStore.getUsers() && BlogStore.getUsers()[0]);
@@ -156,15 +167,49 @@
           const heroName = document.getElementById('heroAuthorName');
           const heroBio = document.getElementById('heroAuthorBio');
           const heroAvatar = document.querySelector('.hero-author-avatar');
-          if (heroName) heroName.textContent = `${author.name} (${author.role === 'author' ? 'Author' : 'Member'})`;
+          if (heroName) heroName.textContent = `${author.name} (DevLog)`;
           if (heroBio && author.bio) heroBio.textContent = author.bio;
           if (heroAvatar && author.avatar) heroAvatar.src = author.avatar;
         }
+
+        updateCategoryCounts();
       }
+
+      function updateCategoryCounts() {
+        const allPosts = BlogStore.getPosts();
+        const countMap = {
+          'all': allPosts.length,
+          '프론트엔드': 0,
+          '개발': 0,
+          'UI/UX': 0,
+          '회고': 0
+        };
+        allPosts.forEach(p => {
+          if (countMap[p.category] !== undefined) {
+            countMap[p.category]++;
+          }
+        });
+        const cAll = document.getElementById('countAll');
+        const cFront = document.getElementById('countFront');
+        const cDev = document.getElementById('countDev');
+        const cUi = document.getElementById('countUi');
+        const cRetro = document.getElementById('countRetro');
+        if (cAll) cAll.textContent = `(${countMap['all']})`;
+        if (cFront) cFront.textContent = `(${countMap['프론트엔드']})`;
+        if (cDev) cDev.textContent = `(${countMap['개발']})`;
+        if (cUi) cUi.textContent = `(${countMap['UI/UX']})`;
+        if (cRetro) cRetro.textContent = `(${countMap['회고']})`;
+
+        const totalPostsEl = document.getElementById('heroTotalPostsCount');
+        if (totalPostsEl) totalPostsEl.textContent = allPosts.length;
+      }
+
       updateHeroAuthor();
 
       // 3. 게시글 목록 렌더링 함수
       function renderPosts() {
+        updateCategoryCounts();
+
         const posts = BlogStore.queryPosts({
           category: currentCategory,
           search: currentSearch,
@@ -208,7 +253,7 @@
               <div class="post-card-thumb-wrapper">
                 <div class="post-card-thumb-pattern"></div>
                 <div class="post-card-thumb-icon">
-                  <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
                 </div>
                 <span class="post-category-badge">${post.category || '개발'}</span>
               </div>
@@ -230,15 +275,15 @@
                   </div>
                   <div class="post-card-stats">
                     <span class="stat-item" title="조회수">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                       ${post.views || 0}
                     </span>
-                    <span class="stat-item" title="좋아요">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                    <span class="stat-item stat-likes" title="공감">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="#f43f5e" stroke="#f43f5e" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
                       ${post.likes || 0}
                     </span>
-                    <span class="stat-item" title="댓글">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                    <span class="stat-item stat-comments" title="댓글">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
                       ${commentsCount}
                     </span>
                   </div>

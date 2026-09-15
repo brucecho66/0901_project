@@ -106,25 +106,49 @@
     `;
 
     headerPlaceholder.innerHTML = `
-      <header class="header">
-        <div class="container nav-container">
-          <a href="index.html" class="logo" aria-label="블로그 홈으로 이동">
-            <span class="naver-blog-icon">N</span>
-            <span class="logo-text">Dev<span class="logo-accent">.Blog</span></span>
-            <span class="naver-brand-badge">블로그</span>
-          </a>
+      <header class="header naver-style-header">
+        <div class="container nav-container naver-nav-container">
+          <!-- 좌측 네이버 blog 워드마크 (01.PNG 스타일) -->
+          <div class="header-left-brand">
+            <a href="index.html" class="naver-blog-wordmark" aria-label="블로그 홈">blog</a>
+          </div>
+
+          <!-- 중앙 블로그 타이틀 (아이콘 + 규타쿠의 오타쿠 활동로그) -->
+          <div class="header-center-branding">
+            <a href="index.html" class="naver-header-title-btn" title="규타쿠의 오타쿠 활동로그 홈으로 이동">
+              <svg class="naver-header-list-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="7" y1="8" x2="7.01" y2="8" stroke-width="2.5"></line>
+                <line x1="11" y1="8" x2="17" y2="8"></line>
+                <line x1="7" y1="12" x2="7.01" y2="12" stroke-width="2.5"></line>
+                <line x1="11" y1="12" x2="17" y2="12"></line>
+                <line x1="7" y1="16" x2="7.01" y2="16" stroke-width="2.5"></line>
+                <line x1="11" y1="16" x2="17" y2="16"></line>
+              </svg>
+              <span class="naver-header-title-text">규타쿠의 오타쿠 활동로그</span>
+            </a>
+          </div>
 
           ${navLinksHtml}
 
-          <div class="nav-actions">
+          <!-- 우측 상단 액션 (검색, 글쓰기, 프로필, 전체 메뉴) -->
+          <div class="nav-actions naver-header-actions">
             ${userActionsHtml}
 
+            <!-- 돋보기 검색 버튼 (01.PNG 스타일) -->
+            <button id="headerSearchBtn" class="naver-header-icon-btn" aria-label="블로그 글 검색" title="게시글 검색">
+              <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+            </button>
+
             <!-- 테마 전환 버튼 (라이트/다크) -->
-            <button id="themeToggleBtn" class="theme-toggle-btn" aria-label="테마 전환 (라이트/다크)">
-              <svg class="theme-icon-moon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <button id="themeToggleBtn" class="theme-toggle-btn naver-theme-toggle" aria-label="테마 전환 (라이트/다크)" title="화면 테마 변경">
+              <svg class="theme-icon-moon" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
               </svg>
-              <svg class="theme-icon-sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg class="theme-icon-sun" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="5"></circle>
                 <line x1="12" y1="1" x2="12" y2="3"></line>
                 <line x1="12" y1="21" x2="12" y2="23"></line>
@@ -137,11 +161,13 @@
               </svg>
             </button>
 
-            <!-- 모바일 햄버거 메뉴 버튼 -->
-            <button id="menuToggleBtn" class="hamburger-btn" aria-label="모바일 메뉴 열기" aria-expanded="false">
-              <span class="hamburger-line"></span>
-              <span class="hamburger-line"></span>
-              <span class="hamburger-line"></span>
+            <!-- 햄버거 메뉴 버튼 (01.PNG 스타일) -->
+            <button id="menuToggleBtn" class="naver-header-icon-btn hamburger-btn" aria-label="메뉴 열기" aria-expanded="false" title="전체 메뉴">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="3" y1="6" x2="21" y2="6"></line>
+                <line x1="3" y1="12" x2="21" y2="12"></line>
+                <line x1="3" y1="18" x2="21" y2="18"></line>
+              </svg>
             </button>
           </div>
         </div>
@@ -170,6 +196,19 @@
     const mobileLogoutBtn = document.getElementById('mobileLogoutBtn');
     if (mobileLogoutBtn) {
       mobileLogoutBtn.addEventListener('click', handleLogout);
+    }
+
+    const searchBtn = document.getElementById('headerSearchBtn');
+    if (searchBtn) {
+      searchBtn.addEventListener('click', () => {
+        const searchInput = document.getElementById('searchInput');
+        if (searchInput) {
+          searchInput.focus();
+          searchInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else {
+          window.location.href = 'index.html?focusSearch=1';
+        }
+      });
     }
 
     const menuBtn = document.getElementById('menuToggleBtn');

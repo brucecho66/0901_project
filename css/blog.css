@@ -1999,3 +1999,404 @@
   margin-top: 1.25rem;
 }
 
+/* ==========================================================================
+   01.PNG 네이버 블로그 스타일 디자인 (헤더, 중앙 타이틀, 손글씨 폰트, 초록색 밑줄 등)
+   ========================================================================== */
+
+/* 1. 네이버 블로그 헤더 */
+.naver-style-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background-color: var(--bg-card);
+  border-bottom: 1px solid var(--border-color);
+  backdrop-filter: blur(8px);
+}
+
+.naver-nav-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  height: 58px;
+}
+
+.header-left-brand {
+  display: flex;
+  align-items: center;
+}
+
+.naver-blog-wordmark {
+  font-family: Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 1.7rem;
+  font-weight: 900;
+  color: #111111;
+  text-decoration: none;
+  letter-spacing: -0.8px;
+  line-height: 1;
+  transition: opacity var(--transition-fast);
+}
+
+[data-theme="dark"] .naver-blog-wordmark {
+  color: #f5f5f5;
+}
+
+.naver-blog-wordmark:hover {
+  opacity: 0.8;
+}
+
+.header-center-branding {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 50%;
+  pointer-events: auto;
+}
+
+.naver-header-title-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  text-decoration: none;
+  color: #1e1e1e;
+  font-weight: 700;
+  font-size: 1.05rem;
+  letter-spacing: -0.3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color var(--transition-fast);
+}
+
+[data-theme="dark"] .naver-header-title-btn {
+  color: #e2e8f0;
+}
+
+.naver-header-title-btn:hover {
+  color: var(--accent-primary);
+}
+
+.naver-header-list-icon {
+  color: #1e1e1e;
+  flex-shrink: 0;
+}
+
+[data-theme="dark"] .naver-header-list-icon {
+  color: #cbd5e1;
+}
+
+.naver-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.naver-header-icon-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.4rem;
+  color: #262626;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-full);
+  transition: all var(--transition-fast);
+}
+
+[data-theme="dark"] .naver-header-icon-btn {
+  color: #e2e8f0;
+}
+
+.naver-header-icon-btn:hover {
+  background-color: var(--bg-secondary);
+  color: var(--accent-primary);
+}
+
+/* 2. 포스트 상세 상단 바 & 더보기 메뉴 (01.PNG) */
+.naver-post-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+  position: relative;
+}
+
+.naver-post-options-wrap {
+  position: relative;
+}
+
+.naver-post-more-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #9e9e9e;
+  padding: 0.4rem;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+
+.naver-post-more-btn:hover {
+  color: #222222;
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="dark"] .naver-post-more-btn:hover {
+  color: #ffffff;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.naver-options-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.12);
+  min-width: 140px;
+  display: none;
+  flex-direction: column;
+  padding: 0.4rem 0;
+  z-index: 60;
+}
+
+.naver-options-dropdown.active {
+  display: flex;
+  animation: dropdownFadeIn 0.15s ease-out;
+}
+
+@keyframes dropdownFadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.naver-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  text-decoration: none;
+  background: none;
+  border: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+}
+
+.naver-dropdown-item:hover {
+  background-color: var(--bg-secondary);
+}
+
+.naver-dropdown-item.item-danger {
+  color: var(--danger, #ef4444);
+}
+
+.naver-dropdown-divider {
+  height: 1px;
+  background-color: var(--border-color);
+  margin: 0.3rem 0;
+}
+
+/* 3. 네이버 블로그 상세 카드 & 중앙 헤더 (01.PNG 실물 완벽 일치) */
+.naver-post-detail-card {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 3.5rem 3rem 2.5rem 3rem;
+  margin-bottom: 2.5rem;
+  box-shadow: var(--shadow-sm);
+}
+
+@media (max-width: 768px) {
+  .naver-post-detail-card {
+    padding: 2.25rem 1.25rem 2rem 1.25rem;
+    border-radius: var(--radius-md);
+  }
+}
+
+.naver-card-header {
+  text-align: center;
+  margin-bottom: 3.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.naver-post-category {
+  display: inline-block;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #4b5563;
+  margin-bottom: 1.5rem;
+  letter-spacing: -0.2px;
+}
+
+[data-theme="dark"] .naver-post-category {
+  color: #94a3b8;
+}
+
+/* 01.PNG의 매력적인 한국어 손글씨 폰트 스타일 타이틀 */
+.naver-post-handwriting-title {
+  font-family: 'Gaegu', 'Nanum Pen Script', cursive, sans-serif;
+  font-size: clamp(2.1rem, 4.5vw, 2.85rem);
+  font-weight: 400;
+  line-height: 1.5;
+  color: #1a1a1a;
+  text-align: center;
+  letter-spacing: -0.3px;
+  word-break: keep-all;
+  max-width: 760px;
+  margin: 0 auto 2.25rem auto;
+}
+
+[data-theme="dark"] .naver-post-handwriting-title {
+  color: #f1f5f9;
+}
+
+.naver-author-block-centered {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.naver-author-avatar-circle {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-bottom: 0.55rem;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+.naver-author-name-text {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 0.2rem;
+  letter-spacing: -0.2px;
+}
+
+[data-theme="dark"] .naver-author-name-text {
+  color: #e2e8f0;
+}
+
+.naver-author-date-text {
+  font-size: 0.825rem;
+  color: #8c8c8c;
+  margin-bottom: 0.85rem;
+  font-weight: 400;
+}
+
+/* 01.PNG 일치: 날짜 바로 아래 90px 너비의 네이버 시그니처 초록색 라인 */
+.naver-green-accent-line {
+  width: 90px;
+  height: 2px;
+  background-color: #03c75a;
+  border-radius: 1px;
+  margin: 0 auto;
+}
+
+/* 4. 01.PNG 하단 인터랙션 바 (댓글 아이콘, 비행기 공유 아이콘, 공감 버튼) */
+.naver-post-bottom-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.5rem 0.25rem 0.5rem 0.25rem;
+  margin-top: 3.5rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.naver-bottom-left-actions {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.naver-interaction-icon-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: #333333;
+  padding: 0.4rem 0.5rem;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+
+[data-theme="dark"] .naver-interaction-icon-btn {
+  color: #cbd5e1;
+}
+
+.naver-interaction-icon-btn:hover {
+  color: var(--accent-primary);
+  background-color: var(--accent-soft);
+  transform: translateY(-1px);
+}
+
+.naver-icon-counter {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: inherit;
+}
+
+.naver-bottom-right-actions {
+  display: flex;
+  align-items: center;
+}
+
+.naver-sympathy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.55rem 1.25rem;
+  border-radius: var(--radius-full);
+  border: 1.5px solid var(--border-color);
+  background-color: var(--bg-card);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 0.925rem;
+  font-weight: 700;
+  transition: all var(--transition-fast);
+  box-shadow: var(--shadow-sm);
+}
+
+.naver-sympathy-btn:hover {
+  border-color: #f43f5e;
+  color: #f43f5e;
+  background-color: rgba(244, 63, 94, 0.08);
+  transform: translateY(-1px);
+}
+
+.naver-sympathy-btn.liked {
+  border-color: #f43f5e;
+  background-color: #fff1f2;
+  color: #e11d48;
+}
+
+[data-theme="dark"] .naver-sympathy-btn.liked {
+  background-color: rgba(225, 29, 72, 0.15);
+  color: #fb7185;
+}
+
+/* 반응형 헤더 조절 */
+@media (max-width: 680px) {
+  .header-center-branding {
+    display: none;
+  }
+}
+

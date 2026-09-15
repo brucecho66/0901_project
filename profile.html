@@ -6,8 +6,10 @@
   <meta name="description" content="프로필 페이지 - Dev.Blog">
   <title>프로필 | Dev.Blog</title>
 
-  <!-- Pretendard Web Font CDN (사전 연결 최적화) -->
-  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <!-- Fonts (Pretendard & Gaegu) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Nanum+Pen+Script&display=swap" rel="stylesheet">
   <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
 
   <!-- Stylesheets -->
@@ -21,7 +23,7 @@
   <!-- 공통 헤더 -->
   <div id="blogHeader"></div>
 
-  <!-- 메인 프로필 컨텐츠 -->
+  <!-- 메인 프로필 컨텐츠 영역 -->
   <main class="blog-main">
     <div class="container">
       <div class="profile-wrapper">
@@ -30,7 +32,7 @@
         <div class="profile-card-main">
           <div class="profile-header-layout">
             <div style="position: relative;">
-              <img id="profileAvatar" src="assets/images/profile.svg" alt="프로필 사진" class="profile-avatar-large">
+              <img id="profileAvatar" src="assets/images/gyutaku_profile.png" alt="프로필 사진" class="profile-avatar-large">
               <label for="avatarUploadInput" class="photo-change-label" style="margin-top: 0.5rem; display: block; text-align: center; cursor: pointer; font-size: 0.75rem; color: var(--accent-primary);">
                 사진 변경
               </label>
@@ -39,12 +41,12 @@
 
             <div class="profile-main-meta">
               <div class="profile-name-row">
-                <h1 class="profile-display-name" id="profileDisplayName">홍길동</h1>
+                <h1 class="profile-display-name" id="profileDisplayName">규타쿠</h1>
                 <span class="profile-role-badge" id="profileRoleBadge">Author</span>
               </div>
-              <p class="profile-email" id="profileEmail">hong@example.com</p>
+              <p class="profile-email" id="profileEmail">gyutaku@naver.com</p>
               <p class="profile-bio-text" id="profileBio">
-                문제를 집요하게 해결하는 풀스택 웹 개발자입니다. 사용자 중심의 인터랙션과 웹 성능 최적화, 지속 가능한 아키텍처에 관심이 많습니다.
+                포켓몬카드 · 굿즈 · 피규어 · 서브컬처 취미와 일상을 기록하는 규타쿠의 오타쿠 활동로그 블로그입니다.
               </p>
 
               <div style="margin-top: 1rem; display: flex; gap: 0.5rem;" id="profileActionGroup">

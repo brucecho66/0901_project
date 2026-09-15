@@ -6,8 +6,10 @@
   <meta name="description" content="새 게시글 작성 및 수정 - Dev.Blog">
   <title>게시글 작성 | Dev.Blog</title>
 
-  <!-- Pretendard Web Font CDN (사전 연결 최적화) -->
-  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <!-- Fonts (Pretendard & Gaegu) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Nanum+Pen+Script&display=swap" rel="stylesheet">
   <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
 
   <!-- Stylesheets -->
@@ -158,11 +160,11 @@
       let currentUser = BlogStore.getCurrentUser();
       if (!currentUser) {
         // 간편 작성 경험을 위해 테스트 계정으로 자동 로그인 안내 또는 로그인 페이지 연결
-        if (confirm('게시글 작성은 로그인이 필요합니다.\n체험 계정(홍길동)으로 바로 로그인하여 글을 작성하시겠습니까?')) {
+        if (confirm('게시글 작성은 로그인이 필요합니다.\n체험 계정(규타쿠)으로 바로 로그인하여 글을 작성하시겠습니까?')) {
           BlogStore.quickLogin();
           currentUser = BlogStore.getCurrentUser();
           BlogCommon.renderHeader('write');
-          BlogCommon.toast('체험 계정으로 로그인되었습니다.', 'success');
+          BlogCommon.toast('체험 계정(규타쿠)으로 로그인되었습니다.', 'success');
         } else {
           window.location.href = 'login.html?redirect=post-write.html';
           return;

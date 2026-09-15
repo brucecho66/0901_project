@@ -6,8 +6,10 @@
   <meta name="description" content="게시글 상세 페이지 - Dev.Blog">
   <title>게시글 상세 | Dev.Blog</title>
 
-  <!-- Pretendard Web Font CDN (사전 연결 최적화) -->
-  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <!-- Fonts (Pretendard & Gaegu 손글씨체) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Nanum+Pen+Script&display=swap" rel="stylesheet">
   <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
 
   <!-- Stylesheets -->
@@ -86,54 +88,62 @@
         const hasLiked = BlogStore.checkUserLiked(p.id);
         const tagsHtml = (p.tags || []).map(t => `<span class="post-tag">#${t}</span>`).join('');
         const renderedHtmlContent = BlogStore.renderMarkdown(p.content);
-        const readTime = BlogStore.calculateReadingTime(p.content);
-        const dateStr = BlogStore.formatDate(p.createdAt);
+        const dateStr = BlogStore.formatNaverDate ? BlogStore.formatNaverDate(p.createdAt) : BlogStore.formatDate(p.createdAt);
 
         container.innerHTML = `
-          <!-- 상단 내비게이션 바 -->
-          <div class="detail-nav-bar">
+          <!-- 상단 내비게이션 바 & 01.PNG 우측 더보기(3단 점) 옵션 메뉴 -->
+          <div class="naver-post-top-bar">
             <a href="index.html" class="back-link">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"></polyline></svg>
-              <span>전체 목록으로</span>
+              <span>목록으로</span>
             </a>
 
-            ${isAuthor ? `
-              <div class="detail-action-buttons">
-                <a href="post-write.html?id=${p.id}" class="btn btn-sm btn-secondary" title="게시글 수정">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
-                  <span>수정</span>
-                </a>
-                <button id="deletePostBtn" class="btn btn-sm btn-danger" title="게시글 삭제">삭제</button>
+            <!-- 01.PNG 스타일 3개 점 옵션 버튼 및 드롭다운 -->
+            <div class="naver-post-options-wrap">
+              <button id="postOptionsBtn" class="naver-post-more-btn" aria-label="게시글 옵션 더보기" title="더보기">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <circle cx="12" cy="5" r="1.8"></circle>
+                  <circle cx="12" cy="12" r="1.8"></circle>
+                  <circle cx="12" cy="19" r="1.8"></circle>
+                </svg>
+              </button>
+              <div id="postOptionsMenu" class="naver-options-dropdown">
+                ${isAuthor ? `
+                  <a href="post-write.html?id=${p.id}" class="naver-dropdown-item">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                    <span>글 수정</span>
+                  </a>
+                  <button id="deletePostBtn" class="naver-dropdown-item item-danger">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                    <span>글 삭제</span>
+                  </button>
+                  <div class="naver-dropdown-divider"></div>
+                ` : ''}
+                <button id="copyUrlDropdownBtn" class="naver-dropdown-item">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                  <span>링크 복사</span>
+                </button>
               </div>
-            ` : ''}
+            </div>
           </div>
 
-          <!-- 네이버 블로그 스마트에디터 스타일 상세 본문 카드 -->
-          <div class="post-detail-card">
-            <!-- 게시글 헤더 정보 -->
-            <header class="post-detail-header">
-              <span class="post-detail-category">${p.category || '개발'}</span>
-              <h1 class="post-detail-title">${p.title}</h1>
+          <!-- 01.PNG 스타일 네이버 블로그 상세 카드 -->
+          <div class="naver-post-detail-card">
+            <!-- 01.PNG 일치 중앙 정렬 포스트 헤더 -->
+            <header class="naver-card-header">
+              <div class="naver-post-category">${p.category || '포켓몬카드'}</div>
+              <h1 class="naver-post-handwriting-title">${p.title}</h1>
 
-              <div class="post-detail-meta">
-                <div class="detail-author-info">
-                  <img src="${p.authorAvatar || 'assets/images/profile.svg'}" alt="${p.authorName}" class="detail-author-avatar">
-                  <div>
-                    <div class="detail-author-name">${p.authorName}</div>
-                    <span class="comment-date">${dateStr}</span>
-                  </div>
-                </div>
-
-                <div class="detail-stats-info">
-                  <span>⏱️ ${readTime} 소요</span>
-                  <span>👀 조회 ${p.views || 0}</span>
-                  <span id="headerLikeCount">♥ 공감 ${p.likes || 0}</span>
-                </div>
+              <div class="naver-author-block-centered">
+                <img src="${p.authorAvatar || 'assets/images/gyutaku_profile.png'}" alt="${p.authorName}" class="naver-author-avatar-circle">
+                <div class="naver-author-name-text">${p.authorName}</div>
+                <div class="naver-author-date-text">${dateStr}</div>
+                <div class="naver-green-accent-line"></div>
               </div>
             </header>
 
-            <!-- 게시글 본문 컨텐츠 -->
-            <article class="post-detail-content">
+            <!-- 본문 컨텐츠 (Markdown 렌더링) -->
+            <article class="post-detail-content naver-post-content-body">
               ${renderedHtmlContent}
             </article>
 
@@ -142,27 +152,44 @@
               ${tagsHtml}
             </div>
 
-            <!-- 네이버 시그니처 공감 및 공유 버튼 바 -->
-            <div class="post-interaction-bar">
-              <button id="likeBtn" class="like-button ${hasLiked ? 'liked' : ''}" aria-label="이 글 공감하기">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="${hasLiked ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
-                <span>공감</span>
-                <span id="likeCountSpan">${p.likes || 0}</span>
-              </button>
+            <!-- 01.PNG 하단 인터랙션 바 (댓글, 비행기 공유, 공감) -->
+            <div class="naver-post-bottom-bar">
+              <div class="naver-bottom-left-actions">
+                <button id="scrollToCommentsBtn" class="naver-interaction-icon-btn" title="댓글 보기">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                    <circle cx="12" cy="12" r="9.5"></circle>
+                    <circle cx="8" cy="12" r="1.1" fill="currentColor"></circle>
+                    <circle cx="12" cy="12" r="1.1" fill="currentColor"></circle>
+                    <circle cx="16" cy="12" r="1.1" fill="currentColor"></circle>
+                  </svg>
+                </button>
+                <button id="shareBtn" class="naver-interaction-icon-btn" title="공유하기 / 링크 복사">
+                  <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                  </svg>
+                  <span class="naver-icon-counter">1</span>
+                </button>
+              </div>
 
-              <button id="shareBtn" class="share-button" aria-label="링크 복사하기">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
-                <span>공유하기</span>
-              </button>
+              <div class="naver-bottom-right-actions">
+                <button id="likeBtn" class="naver-sympathy-btn ${hasLiked ? 'liked' : ''}" aria-label="이 글 공감하기">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="${hasLiked ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
+                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                  </svg>
+                  <span>공감</span>
+                  <span id="likeCountSpan">${p.likes || 0}</span>
+                </button>
+              </div>
             </div>
           </div>
 
           <!-- 작성자 소개 카드 -->
           <div class="author-profile-card">
-            <img src="${p.authorAvatar || 'assets/images/profile.svg'}" alt="${p.authorName}" class="author-card-avatar">
+            <img src="${p.authorAvatar || 'assets/images/gyutaku_profile.png'}" alt="${p.authorName}" class="author-card-avatar">
             <div class="author-card-content">
               <h3>작성자: ${p.authorName}</h3>
-              <p>문제를 집요하게 해결하는 웹 개발자입니다. 기술적 호기심과 사용자 편의성을 결합한 안정적인 결과물을 지향합니다.</p>
+              <p>포켓몬카드 · 굿즈 · 피규어 · 서브컬처 취미와 일상을 기록하는 규타쿠의 오타쿠 활동로그 블로그입니다.</p>
               <div style="margin-top: 0.75rem;">
                 <a href="profile.html" class="btn btn-sm btn-secondary">작성자 프로필 보기</a>
               </div>
@@ -186,7 +213,7 @@
                 ` : `
                   <div class="comment-form-top">
                     <span class="user-profile-badge">
-                      <img src="${currentUser.avatar || 'assets/images/profile.svg'}" class="header-avatar" alt="">
+                      <img src="${currentUser.avatar || 'assets/images/gyutaku_profile.png'}" class="header-avatar" alt="">
                       <strong>${currentUser.name}</strong> 님으로 댓글 작성
                     </span>
                   </div>
@@ -210,17 +237,41 @@
       }
 
       function bindDetailEvents(p) {
+        // 더보기(3단 점) 드롭다운 토글
+        const optionsBtn = document.getElementById('postOptionsBtn');
+        const optionsMenu = document.getElementById('postOptionsMenu');
+        if (optionsBtn && optionsMenu) {
+          optionsBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            optionsMenu.classList.toggle('active');
+          });
+          document.addEventListener('click', (e) => {
+            if (!optionsMenu.contains(e.target) && e.target !== optionsBtn) {
+              optionsMenu.classList.remove('active');
+            }
+          });
+        }
+
+        // 댓글 위치로 스크롤 이동
+        const scrollToCommentsBtn = document.getElementById('scrollToCommentsBtn');
+        if (scrollToCommentsBtn) {
+          scrollToCommentsBtn.addEventListener('click', () => {
+            const commentsEl = document.getElementById('commentsSection');
+            if (commentsEl) {
+              commentsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+          });
+        }
+
         // 좋아요 토글
         const likeBtn = document.getElementById('likeBtn');
         const likeCountSpan = document.getElementById('likeCountSpan');
-        const headerLikeCount = document.getElementById('headerLikeCount');
 
         if (likeBtn) {
           likeBtn.addEventListener('click', () => {
             const res = BlogStore.togglePostLike(p.id);
             if (res.success) {
               likeCountSpan.textContent = res.likes;
-              headerLikeCount.textContent = `♥ 공감 ${res.likes}`;
               if (res.hasLiked) {
                 likeBtn.classList.add('liked');
                 likeBtn.querySelector('svg').setAttribute('fill', 'currentColor');
@@ -234,19 +285,27 @@
           });
         }
 
-        // 공유 링크 복사
+        // 공유 링크 복사 핸들러 함수
+        const handleCopyLink = () => {
+          const currentUrl = window.location.href;
+          if (navigator.clipboard) {
+            navigator.clipboard.writeText(currentUrl).then(() => {
+              BlogCommon.toast('게시글 주소가 클립보드에 복사되었습니다!', 'success');
+            });
+          } else {
+            BlogCommon.toast('주소: ' + currentUrl, 'info');
+          }
+          if (optionsMenu) optionsMenu.classList.remove('active');
+        };
+
         const shareBtn = document.getElementById('shareBtn');
         if (shareBtn) {
-          shareBtn.addEventListener('click', () => {
-            const currentUrl = window.location.href;
-            if (navigator.clipboard) {
-              navigator.clipboard.writeText(currentUrl).then(() => {
-                BlogCommon.toast('게시글 주소가 클립보드에 복사되었습니다!', 'success');
-              });
-            } else {
-              BlogCommon.toast('주소: ' + currentUrl, 'info');
-            }
-          });
+          shareBtn.addEventListener('click', handleCopyLink);
+        }
+
+        const copyUrlDropdownBtn = document.getElementById('copyUrlDropdownBtn');
+        if (copyUrlDropdownBtn) {
+          copyUrlDropdownBtn.addEventListener('click', handleCopyLink);
         }
 
         // 삭제 버튼 이벤트

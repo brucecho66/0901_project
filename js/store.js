@@ -23,22 +23,77 @@
     DEFAULT_GAS_URL: 'https://script.google.com/macros/s/AKfycbxl6w2KnRohEM_LKY_yaDoMpYtR87OgV6_yfNK94fPZPLaDiIKomT7pVpkuizEyC_MbJw/exec'
   };
 
-  // 초기 시드 데이터 (풍부한 기술 블로그 글)
+  // 초기 시드 데이터 (규타쿠의 오타쿠 활동로그 시드 데이터)
   const INITIAL_USERS = [
     {
-      id: 'u_hong',
-      email: 'hong@example.com',
+      id: 'u_gyutaku',
+      email: 'gyutaku@naver.com',
       password: 'password123',
-      name: '홍길동',
-      avatar: 'assets/images/profile.svg',
-      bio: '문제를 집요하게 해결하는 풀스택 웹 개발자입니다. 사용자 중심의 인터랙션과 웹 성능 최적화, 지속 가능한 아키텍처에 관심이 많습니다.',
-      techStack: ['JavaScript (ES6+)', 'TypeScript', 'HTML5/CSS3', 'Node.js', 'React', 'Git & GitHub'],
+      name: '규타쿠',
+      avatar: 'assets/images/gyutaku_profile.png',
+      bio: '포켓몬카드 · 굿즈 · 피규어 · 서브컬처 취미와 일상을 기록하는 규타쿠의 오타쿠 활동로그 블로그입니다.',
+      techStack: ['포켓몬카드 (TCG)', '포켓몬 메가페스타', '한정판 굿즈 수집', '피규어·프라모델', '서브컬처 아카이브'],
       github: 'https://github.com/brucecho66',
-      createdAt: '2026-08-01'
+      createdAt: '2026-04-01'
     }
   ];
 
   const INITIAL_POSTS = [
+    {
+      id: 'post-pokemon-30th',
+      title: '포켓몬 30주년 메가페스타 2026의 하이라이트, Pokémon 2026 | Pokémon Secret Forest 서울숲 한정 굿즈·획득 방법 완전정리',
+      category: '포켓몬카드',
+      tags: ['포켓몬30주년', '메가페스타2026', '포켓몬카드', '서울숲한정굿즈', 'SecretForest', '오타쿠활동로그'],
+      excerpt: '2026년 포켓몬 30주년 기념 메가페스타와 서울숲 비밀의 숲 특별 부스 현장 리포트! 한정판 프로모 카드와 익스클루시브 굿즈 라인업, 대기 팁 및 획득 가이드를 꼼꼼히 전해드립니다.',
+      content: `## 🌿 포켓몬 30주년 기념 특별전: 서울숲 Secret Forest 현장기
+
+2026년 드디어 **포켓몬스터 30주년(Pokémon 30th Anniversary)**을 맞이하여 성수동 서울숲 일대에서 역대 최대 규모의 **Pokémon Secret Forest 메가페스타**가 성대하게 개최되었습니다!
+
+새벽부터 전국의 수많은 트레이너와 컬렉터분들이 모여 서울숲 야외 광장을 가득 채웠는데요, 이번 포스팅에서는 현장에서 직접 체험하고 확보한 **한정판 프로모 카드 팩**과 **시크릿 포레스트 익스클루시브 굿즈 실물 리뷰**, 그리고 앞으로 방문하실 분들을 위한 필수 꿀팁들을 정리해 보았습니다.
+
+---
+
+### 🌟 1. 이번 메가페스타의 핵심 하이라이트
+
+1. **서울숲 한정 시크릿 포레스트 프로모 카드 배포**
+   - 숲의 테마로 특별 일러스트된 피카츄 & 세레비 홀로그램 프로모션 카드
+   - 스탬프 랠리 4개 스팟 완주 시 1인 1팩 현장 증정
+2. **30주년 기념 메가 아카이브 팝업 스토어**
+   - 오리지널 1세대 스타팅 몬스터 디오라마 피규어
+   - 서울숲 한정 테라리움 및 메탈 핀배지 컬렉션
+3. **TCG 플레이존 및 현장 배틀 토너먼트**
+   - 마스터 리그 공식 심판진 주관 현장 미니 리그전 상시 진행
+
+> 💡 **현장 방문 필수 꿀팁:**
+> 현장 대기열 사전 캐치테이블 예약은 매일 오전 9시 정각에 오픈됩니다. 오전 일찍 방문해 스탬프 랠리 부스를 먼저 공략하시는 것을 추천드립니다!
+
+---
+
+### 🎁 2. 한정 굿즈 라인업 & 실물 획득 인증
+
+이번 팝업에서 가장 큰 인기를 끌었던 품목은 단연 **Secret Forest 아크릴 스탠드 세트**와 **30주년 기념 TCG 슬리브(덱 실드)**였습니다.
+
+현장 부스 조기 품절이 예상되었으나 다행히 첫 타임 입장으로 목표했던 굿즈들을 모두 무사히 득템할 수 있었습니다! 다음 포스팅에서는 카드 팩 개봉(언박싱) 결과와 홀로그램 시크릿 레어 획득 후기를 생생하게 전해드리겠습니다.
+
+많은 공감(♥)과 이웃 추가 부탁드립니다! 🌲✨`,
+      authorId: 'u_gyutaku',
+      authorName: '규타쿠',
+      authorAvatar: 'assets/images/gyutaku_profile.png',
+      thumbnail: 'assets/images/gyutaku_profile.png',
+      views: 742,
+      likes: 1,
+      likedUsers: [],
+      createdAt: '2026-04-22T02:09:00.000Z',
+      comments: [
+        {
+          id: 'c-pokemon-1',
+          authorName: '피카츄덕후',
+          authorAvatar: 'assets/images/gyutaku_profile.png',
+          content: '서울숲 한정 프로모 카드 실물이 진짜 영롱하네요! 주말에 가려는데 대기 시간 팁 정말 감사합니다 :)',
+          createdAt: '2026-04-22T10:15:00.000Z'
+        }
+      ]
+    },
     {
       id: 'post-1',
       title: '2026년 모던 프론트엔드 성능 최적화 실전 가이드',
@@ -243,10 +298,42 @@ function createStore(initialState) {
 
   // 초기화 함수
   function initStore() {
-    if (!localStorage.getItem(STORAGE_KEYS.INIT)) {
+    const isInit = localStorage.getItem(STORAGE_KEYS.INIT);
+    if (!isInit) {
       localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(INITIAL_USERS));
       localStorage.setItem(STORAGE_KEYS.POSTS, JSON.stringify(INITIAL_POSTS));
-      localStorage.setItem(STORAGE_KEYS.INIT, 'true');
+      localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(INITIAL_USERS[0]));
+      localStorage.setItem(STORAGE_KEYS.INIT, 'v3_gyutaku');
+    } else {
+      // 기존 스토리지 자동 마이그레이션 (규타쿠 계정 및 포켓몬 30주년 포스트 자동 동기화)
+      try {
+        const users = getUsers();
+        const gyuIdx = users.findIndex(u => u.id === 'u_gyutaku' || u.name === '규타쿠');
+        if (gyuIdx === -1) {
+          users.unshift(INITIAL_USERS[0]);
+          localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
+        } else {
+          // 아바타 및 바이오 최신화
+          users[gyuIdx].avatar = INITIAL_USERS[0].avatar;
+          users[gyuIdx].name = INITIAL_USERS[0].name;
+          users[gyuIdx].bio = INITIAL_USERS[0].bio;
+          localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
+        }
+
+        const posts = getPosts();
+        const hasPokePost = posts.some(p => p.id === 'post-pokemon-30th' || (p.title && p.title.includes('포켓몬 30주년')));
+        if (!hasPokePost) {
+          posts.unshift(INITIAL_POSTS[0]);
+          localStorage.setItem(STORAGE_KEYS.POSTS, JSON.stringify(posts));
+        }
+
+        const currentUser = getCurrentUser();
+        if (!currentUser || currentUser.name === '홍길동' || currentUser.id === 'u_hong') {
+          setCurrentUser(INITIAL_USERS[0]);
+        }
+      } catch (e) {
+        console.warn('initStore 마이그레이션 예외:', e);
+      }
     }
     // Google Sheets 연동 URL이 있다면 원격 데이터 동기화 시도
     syncFromGoogleSheets();
@@ -1012,10 +1099,27 @@ function createStore(initialState) {
     if (!isoString) return '';
     try {
       const date = new Date(isoString);
+      if (isNaN(date.getTime())) return isoString;
       const year = date.getFullYear();
       const month = String(date.getMonth() + 1).padStart(2, '0');
       const day = String(date.getDate()).padStart(2, '0');
       return `${year}.${month}.${day}`;
+    } catch (e) {
+      return isoString;
+    }
+  }
+
+  function formatNaverDate(isoString) {
+    if (!isoString) return '';
+    try {
+      const date = new Date(isoString);
+      if (isNaN(date.getTime())) return isoString;
+      const year = date.getFullYear();
+      const month = date.getMonth() + 1;
+      const day = date.getDate();
+      const hours = date.getHours();
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      return `${year}. ${month}. ${day}. ${hours}:${minutes}`;
     } catch (e) {
       return isoString;
     }
@@ -1105,6 +1209,7 @@ function createStore(initialState) {
 
     // Utils
     formatDate,
+    formatNaverDate,
     calculateReadingTime,
     renderMarkdown
   };

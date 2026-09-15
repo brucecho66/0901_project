@@ -3,11 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="개발과 기술, 실전 경험을 기록하는 개인 기술 블로그입니다.">
-  <title>Dev.Blog | 기술 블로그 & 게시글 목록</title>
+  <meta name="description" content="포켓몬카드, 메가페스타 한정 굿즈, 피규어 및 취미 일상을 기록하는 규타쿠의 오타쿠 활동로그 블로그입니다.">
+  <title>규타쿠의 오타쿠 활동로그 | 네이버 블로그</title>
 
-  <!-- Pretendard Web Font CDN (사전 연결 최적화) -->
-  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <!-- Fonts (Pretendard & Gaegu 손글씨체) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Nanum+Pen+Script&display=swap" rel="stylesheet">
   <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
 
   <!-- Stylesheets -->
@@ -24,37 +26,37 @@
   <!-- 메인 블로그 컨텐츠 -->
   <main class="blog-main">
     
-    <!-- 블로그 히어로 / 소개 배너 -->
+    <!-- 블로그 히어로 / 소개 배너 (네이버 블로그 스타일) -->
     <section class="blog-hero">
       <div class="container">
         <div class="blog-hero-inner">
           <div class="blog-hero-content">
             <div class="blog-hero-badge">
               <span class="naver-badge-icon">N</span>
-              <span>NAVER BLOG · 기술 블로그</span>
+              <span>NAVER BLOG · 오타쿠 활동로그</span>
             </div>
-            <h1 class="blog-hero-title">생각과 코드를 기록하는<br><span>기술 아카이브</span></h1>
+            <h1 class="blog-hero-title">취미와 열정을 기록하는<br><span>규타쿠의 오타쿠 활동로그</span></h1>
             <p class="blog-hero-desc">
-              웹 프론트엔드 최적화, 모던 JavaScript 아키텍처, 디자인 시스템 구축 경험과 배움의 과정을 기록합니다.
+              포켓몬 30주년 메가페스타, 한정판 굿즈 및 TCG 카드 수집, 서브컬처 리뷰와 취미 일상을 기록합니다.
             </p>
           </div>
 
           <!-- 블로그 운영자 미니 프로필 카드 -->
           <div class="blog-hero-author-card" id="heroAuthorCard">
             <div class="hero-author-avatar-wrap">
-              <img src="assets/images/profile.svg" alt="홍길동" class="hero-author-avatar">
+              <img src="assets/images/gyutaku_profile.png" alt="규타쿠" class="hero-author-avatar">
               <span class="author-online-badge" title="활동 중"></span>
             </div>
             <div class="hero-author-info">
               <div class="hero-author-name-row">
-                <h4 id="heroAuthorName">홍길동 (DevLog)</h4>
+                <h4 id="heroAuthorName">규타쿠 (Gyutaku)</h4>
                 <span class="hero-author-badge">공식</span>
               </div>
-              <p id="heroAuthorBio">문제를 집요하게 해결하는 풀스택 웹 개발자</p>
+              <p id="heroAuthorBio">포켓몬카드 수집과 오타쿠 라이프를 기록하는 블로거</p>
               <div class="hero-author-stats">
-                <span>이웃 <strong id="heroNeighborCount">158</strong></span>
+                <span>이웃 <strong id="heroNeighborCount">328</strong></span>
                 <span class="stat-divider">·</span>
-                <span>전체글 <strong id="heroTotalPostsCount">12</strong></span>
+                <span>전체글 <strong id="heroTotalPostsCount">14</strong></span>
               </div>
               <div class="hero-author-links">
                 <a href="profile.html" class="hero-author-btn hero-author-btn-primary">+ 이웃추가 / 프로필</a>
@@ -82,9 +84,9 @@
         <div class="blog-filter-row">
           <div class="category-pills" id="categoryPills">
             <button class="category-pill active" data-category="all">전체보기 <span class="pill-count" id="countAll"></span></button>
+            <button class="category-pill" data-category="포켓몬카드">포켓몬카드 <span class="pill-count" id="countPoke"></span></button>
             <button class="category-pill" data-category="프론트엔드">프론트엔드 <span class="pill-count" id="countFront"></span></button>
             <button class="category-pill" data-category="개발">개발 <span class="pill-count" id="countDev"></span></button>
-            <button class="category-pill" data-category="UI/UX">UI/UX <span class="pill-count" id="countUi"></span></button>
             <button class="category-pill" data-category="회고">회고 <span class="pill-count" id="countRetro"></span></button>
           </div>
 
@@ -160,6 +162,15 @@
         window.history.replaceState({}, document.title, window.location.pathname);
       }
 
+      if (urlParams.get('focusSearch') === '1') {
+        setTimeout(() => {
+          if (searchInput) {
+            searchInput.focus();
+            searchInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 150);
+      }
+
       // 블로그 히어로 운영자 프로필 & 통계 동적 업데이트
       function updateHeroAuthor() {
         const currentUser = BlogStore.getCurrentUser();
@@ -168,7 +179,7 @@
           const heroName = document.getElementById('heroAuthorName');
           const heroBio = document.getElementById('heroAuthorBio');
           const heroAvatar = document.querySelector('.hero-author-avatar');
-          if (heroName) heroName.textContent = `${author.name} (DevLog)`;
+          if (heroName) heroName.textContent = `${author.name} (Gyutaku)`;
           if (heroBio && author.bio) heroBio.textContent = author.bio;
           if (heroAvatar && author.avatar) heroAvatar.src = author.avatar;
         }
@@ -180,9 +191,9 @@
         const allPosts = BlogStore.getPosts();
         const countMap = {
           'all': allPosts.length,
+          '포켓몬카드': 0,
           '프론트엔드': 0,
           '개발': 0,
-          'UI/UX': 0,
           '회고': 0
         };
         allPosts.forEach(p => {
@@ -191,15 +202,15 @@
           }
         });
         const cAll = document.getElementById('countAll');
+        const cPoke = document.getElementById('countPoke');
         const cFront = document.getElementById('countFront');
         const cDev = document.getElementById('countDev');
-        const cUi = document.getElementById('countUi');
         const cRetro = document.getElementById('countRetro');
         if (cAll) cAll.textContent = `(${countMap['all']})`;
-        if (cFront) cFront.textContent = `(${countMap['프론트엔드']})`;
-        if (cDev) cDev.textContent = `(${countMap['개발']})`;
-        if (cUi) cUi.textContent = `(${countMap['UI/UX']})`;
-        if (cRetro) cRetro.textContent = `(${countMap['회고']})`;
+        if (cPoke) cPoke.textContent = `(${countMap['포켓몬카드'] || 0})`;
+        if (cFront) cFront.textContent = `(${countMap['프론트엔드'] || 0})`;
+        if (cDev) cDev.textContent = `(${countMap['개발'] || 0})`;
+        if (cRetro) cRetro.textContent = `(${countMap['회고'] || 0})`;
 
         const totalPostsEl = document.getElementById('heroTotalPostsCount');
         if (totalPostsEl) totalPostsEl.textContent = allPosts.length;
